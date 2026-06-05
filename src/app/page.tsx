@@ -1,101 +1,45 @@
 "use client";
 
 import { useState } from "react";
-
-interface ExtractedCase {
-  caseName: string | null;
-  defendant: string | null;
-  victim: string | null;
-  crimeType: string | null;
-  jurisdiction: string | null;
-  state: string | null;
-  approximateYear: string | null;
-  keywords: string[];
-  confidence: "high" | "medium" | "low";
-}
-
-interface CourtResult {
-  id: string;
-  caseName: string;
-  court: string;
-  dateFiled: string;
-  url: string;
-  snippet: string;
-}
-
-interface WikiArticle {
-  title: string;
-  summary: string;
-  url: string;
-  thumbnail: string | null;
-}
+import { CaseAnalysis } from "@/lib/types";
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [extracted, setExtracted] = useState<ExtractedCase | null>(null);
+  const [namesInput, setNamesInput] = useState("");
+  const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [results, setResults] = useState<CourtResult[]>([]);
-  const [wikiArticle, setWikiArticle] = useState<WikiArticle | null>(null);
+
+  const parseNames = (input: string): string[] => {
+    return input
+      .split(",")
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
-    setExtracted(null);
-    setResults([]);
-    setWikiArticle(null);
+    setAnalysis(null);
+
+    const refinementNames = parseNames(namesInput);
 
     try {
-      // Step 1: fetch transcript
-      const transcriptRes = await fetch("/api/transcript", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, refinementNames }),
       });
 
-      const transcriptData = await transcriptRes.json();
+      const data = await res.json();
 
-      if (!transcriptRes.ok) {
-        setError(transcriptData.error);
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong");
         return;
       }
 
-      // Step 2: extract entities
-      const extractRes = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: transcriptData.transcript }),
-      });
-
-      const extractData = await extractRes.json();
-
-      if (!extractRes.ok) {
-        setError(extractData.error);
-        return;
-      }
-
-      setExtracted(extractData.extracted);
-
-      // Step 3: search Wikipedia
-      const wikiRes = await fetch("/api/wiki", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extracted: extractData.extracted }),
-      });
-
-      const wikiData = await wikiRes.json();
-      setWikiArticle(wikiData.article ?? null);
-
-      // Step 4: search CourtListener
-      const searchRes = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extracted: extractData.extracted }),
-      });
-
-      const searchData = await searchRes.json();
-      setResults(searchData.results ?? []);
-    } catch (err) {
+      setAnalysis(data);
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);
@@ -109,7 +53,14 @@ export default function Home() {
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         placeholder="Paste YouTube URL"
-        className="border p-2 w-full mb-4"
+        className="border p-2 w-full mb-3"
+      />
+      <input
+        type="text"
+        value={namesInput}
+        onChange={(e) => setNamesInput(e.target.value)}
+        placeholder="Names (optional) — e.g. Hadden Clark, Laura Houghteling"
+        className="border p-2 w-full mb-4 text-sm"
       />
       <button
         onClick={handleSubmit}
@@ -121,62 +72,109 @@ export default function Home() {
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
 
-      {extracted && (
-        <div className="mt-6">
-          <h2 className="font-bold text-lg mb-2">Extracted Case Info</h2>
-          <pre className="text-sm bg-gray-100 text-black p-4 rounded whitespace-pre-wrap">
-            {JSON.stringify(extracted, null, 2)}
-          </pre>
-        </div>
-      )}
+      {analysis && (
+        <div className="mt-6 space-y-6">
 
-      {wikiArticle && (
-        <div className="mt-6">
-          <h2 className="font-bold text-lg mb-2">Wikipedia</h2>
-          {wikiArticle.thumbnail && (
-            <img
-              src={wikiArticle.thumbnail}
-              alt={wikiArticle.title}
-              className="mb-2 rounded"
-            />
-          )}
-          <p className="font-bold">{wikiArticle.title}</p>
-          <p className="text-sm mt-2">{wikiArticle.summary}</p>
-          <a
-            href={wikiArticle.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 text-sm"
-          >
-            Read full article
-          </a>
-        </div>
-      )}
+          {/* Extracted signals */}
+          <div>
+            <h2 className="font-bold text-lg mb-2">Extracted Signals</h2>
+            <pre className="text-sm bg-gray-100 text-black p-4 rounded whitespace-pre-wrap">
+              {JSON.stringify(analysis.extracted, null, 2)}
+            </pre>
+          </div>
 
-      <div className="mt-6">
-        <h2 className="font-bold text-lg mb-2">Court Records Found</h2>
-        {results.length === 0 ? (
-          <p className="text-sm text-gray-500">No appellate records found.</p>
-        ) : (
-          results.map((r, i) => (
-            <div key={i} className="border p-4 mb-2 rounded">
-              <p className="font-bold">{r.caseName}</p>
-              <p className="text-sm text-gray-500">
-                {r.court} - {r.dateFiled}
-              </p>
-              <p className="text-sm mt-1">{r.snippet}</p>
-              <a
-                href={`https://www.courtlistener.com${r.url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 text-sm"
-              >
-                View on CourtListener
-              </a>
+          {/* Refinement names used */}
+          {analysis.refinementNames.length > 0 && (
+            <div>
+              <h2 className="font-bold text-lg mb-2">Refinement Names Used</h2>
+              <p className="text-sm">{analysis.refinementNames.join(", ")}</p>
             </div>
-          ))
-        )}
-      </div>
+          )}
+
+          {/* Resolved case */}
+          <div>
+            <h2 className="font-bold text-lg mb-2">Resolved Case</h2>
+            <div className="border p-4 rounded">
+              <p className="font-bold">
+                {analysis.resolved.selectedCase.title}
+              </p>
+              <p className="text-sm text-gray-500">
+                Source: {analysis.resolved.selectedCase.source} —
+                Score: {analysis.resolved.selectedCase.score} —
+                Confidence: {analysis.resolved.confidence}
+              </p>
+              <p className="text-sm mt-2 italic">
+                {analysis.resolved.reasoning}
+              </p>
+              {analysis.resolved.selectedCase.url && (
+                <a
+                  href={analysis.resolved.selectedCase.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 text-sm"
+                >
+                  View source
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Wikipedia summary */}
+          {analysis.wikiSummary && (
+            <div>
+              <h2 className="font-bold text-lg mb-2">Wikipedia</h2>
+              {analysis.wikiThumbnail && (
+                <img
+                  src={analysis.wikiThumbnail}
+                  alt="case thumbnail"
+                  className="mb-2 rounded"
+                />
+              )}
+              <p className="text-sm">{analysis.wikiSummary}</p>
+              {analysis.wikiUrl && (
+                <a
+                  href={analysis.wikiUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 text-sm"
+                >
+                  Read full article
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* All candidates */}
+          <div>
+            <h2 className="font-bold text-lg mb-2">All Candidates</h2>
+            {analysis.candidates.map((c, i) => (
+              <div key={i} className="border p-3 mb-2 rounded">
+                <p className="font-bold">{c.title}</p>
+                <p className="text-sm text-gray-500">
+                  {c.source} — score: {c.score}
+                </p>
+                {c.snippet && (
+                  <p
+                    className="text-sm mt-1"
+                    dangerouslySetInnerHTML={{ __html: c.snippet }}
+                  />
+                )}
+                {c.url && (
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 text-sm"
+                  >
+                    View
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
     </main>
   );
 }
