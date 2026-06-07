@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractContent } from "@/lib/extractor";
+import { sourceContent } from "@/lib/source";
 import { extractCase } from "@/lib/extract";
 import { searchCourtListener } from "@/lib/search";
 import { searchWikipedia } from "@/lib/wiki";
@@ -22,11 +22,11 @@ export async function POST(req: NextRequest) {
 
     console.log("Analyze: refinement names:", refinementNames);
 
-    // Step 1: extract content from URL (YouTube or article)
+    // Step 1: source content from URL (YouTube or article)
     console.log("Analyze: extracting content from URL");
     let content;
     try {
-      content = await extractContent(url);
+      content = await sourceContent(url);
     } catch (err) {
       console.error("Analyze: content extraction failed:", err);
       return NextResponse.json(

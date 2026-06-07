@@ -16,11 +16,11 @@ export function isYoutubeUrl(url: string): boolean {
   }
 }
 
-export async function extractContent(url: string): Promise<ExtractedContent> {
-  console.log("Extractor: URL:", url);
+export async function sourceContent(url: string): Promise<ExtractedContent> {
+  console.log("Source extracted: URL:", url);
 
   if (isYoutubeUrl(url)) {
-    console.log("Extractor: routing to /api/transcript");
+    console.log("Source extracted: routing to /api/transcript");
 
     const res = await fetch(`${BASE_URL}/api/transcript`, {
       method: "POST",
@@ -42,7 +42,7 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
     };
   }
 
-  console.log("Extractor: routing to /api/article");
+  console.log("Source extracted: routing to /api/article");
 
   const res = await fetch(`${BASE_URL}/api/article`, {
     method: "POST",
