@@ -16,9 +16,13 @@ export async function extractCase(transcript: string): Promise<ExtractedCase> {
       },
       {
         role: "user",
-        content: `Analyze this true crime video transcript and extract structured information about the primary criminal case.
-Treat extracted names as potentially noisy due to transcript speech-to-text errors.
-Treat location, year, crime type, and keywords as the most reliable signals.
+        content: `Analyze this text and extract structured information about the primary criminal case being described.
+
+IMPORTANT INSTRUCTIONS:
+- Extract full legal names including middle names where available (e.g. "Hadden Irving Clark" not "Hadden Clark")
+- Treat extracted names as potentially noisy if source is a speech-to-text transcript
+- Treat location, year, crime type, and keywords as the most reliable signals
+- For defendant and victim, always prefer the most complete name available
 
 Use this exact structure:
 {
@@ -33,7 +37,7 @@ Use this exact structure:
   "confidence": "high | medium | low"
 }
 
-Transcript:
+Text:
 ${transcript.slice(0, 12000)}`,
       },
     ],
@@ -41,9 +45,12 @@ ${transcript.slice(0, 12000)}`,
   });
 
   const text = completion.choices[0].message.content?.trim() ?? "";
+  console.log("Extract: raw response:", text);
 
   try {
-    return JSON.parse(text) as ExtractedCase;
+    const parsed = JSON.parse(text) as ExtractedCase;
+    console.log("Extract: parsed:", JSON.stringify(parsed, null, 2));
+    return parsed;
   } catch {
     throw new Error(`Failed to parse extraction response: ${text}`);
   }

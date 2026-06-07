@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractContent } from "@/lib/extractor";
 import { extractCase } from "@/lib/extract";
 import { searchCourtListener } from "@/lib/search";
 import { searchWikipedia } from "@/lib/wiki";
@@ -14,40 +15,35 @@ export async function POST(req: NextRequest) {
 
     if (!url) {
       return NextResponse.json(
-        { error: "YouTube URL is required" },
+        { error: "URL is required" },
         { status: 400 }
       );
     }
 
     console.log("Analyze: refinement names:", refinementNames);
 
-    // Step 1: fetch transcript
-    console.log("Analyze: fetching transcript");
-    const transcriptRes = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/api/transcript`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      }
-    );
-
-    if (!transcriptRes.ok) {
+    // Step 1: extract content from URL (YouTube or article)
+    console.log("Analyze: extracting content from URL");
+    let content;
+    try {
+      content = await extractContent(url);
+    } catch (err) {
+      console.error("Analyze: content extraction failed:", err);
       return NextResponse.json(
-        { error: "Failed to fetch transcript" },
+        { error: "Failed to extract content from URL" },
         { status: 500 }
       );
     }
 
-    const { transcript } = await transcriptRes.json();
-    console.log("Analyze: transcript length:", transcript.length);
+    console.log("Analyze: source type:", content.sourceType);
+    console.log("Analyze: content length:", content.text.length);
 
     // Step 2: extract case signals
     console.log("Analyze: extracting case signals");
-    const extracted = await extractCase(transcript);
+    const extracted = await extractCase(content.text);
     console.log("Analyze: extracted:", JSON.stringify(extracted, null, 2));
 
-    // Step 3: parallel search using extracted signals + refinement names
+    // Step 3: parallel search
     console.log("Analyze: running parallel search");
     const [courtResults, wikiResult] = await Promise.all([
       searchCourtListener(extracted, refinementNames),
@@ -85,6 +81,8 @@ export async function POST(req: NextRequest) {
       wikiUrl: wikiResult.url,
       wikiThumbnail: wikiResult.thumbnail,
       refinementNames,
+      sourceType: content.sourceType,
+      sourceTitle: content.title,
     };
 
     return NextResponse.json(analysis);

@@ -24,27 +24,25 @@ function calculateWikiScore(
   result: WikiSearchResult,
   rank: number,
   keywords: string[],
-  refinementNames: string[]
+  refinementNames: string[],
 ): number {
   const rankScore = rank === 0 ? 0.7 : rank === 1 ? 0.5 : 0.3;
 
   const titleLower = result.title.toLowerCase();
   const snippetLower = result.snippet.toLowerCase();
 
-  // Check keyword overlap
   const keywordMatched = keywords.filter(
     (k) =>
       titleLower.includes(k.toLowerCase()) ||
-      snippetLower.includes(k.toLowerCase())
+      snippetLower.includes(k.toLowerCase()),
   ).length;
   const keywordBonus =
     Math.min(keywordMatched / Math.max(keywords.length, 1), 1) * 0.2;
 
-  // Check refinement name overlap — higher bonus
   const nameMatched = refinementNames.filter(
     (n) =>
       titleLower.includes(n.toLowerCase()) ||
-      snippetLower.includes(n.toLowerCase())
+      snippetLower.includes(n.toLowerCase()),
   ).length;
   const nameBonus =
     Math.min(nameMatched / Math.max(refinementNames.length, 1), 1) * 0.3;
@@ -56,7 +54,7 @@ function calculateWikiScore(
 
 export async function searchWikipedia(
   extracted: ExtractedCase,
-  refinementNames: string[] = []
+  refinementNames: string[] = [],
 ): Promise<WikiResult> {
   const query = generateWikiQuery(extracted, refinementNames);
   console.log("Wikipedia query:", query);
@@ -71,7 +69,7 @@ export async function searchWikipedia(
   });
 
   const searchRes = await fetch(
-    `https://en.wikipedia.org/w/api.php?${searchParams}`
+    `https://en.wikipedia.org/w/api.php?${searchParams}`,
   );
 
   if (!searchRes.ok) {
@@ -84,29 +82,27 @@ export async function searchWikipedia(
 
   console.log(
     "Wikipedia results:",
-    searchResults.map((r) => r.title)
+    searchResults.map((r) => r.title),
   );
 
   if (searchResults.length === 0) {
     return { candidates: [], summary: null, url: null, thumbnail: null };
   }
 
+  // Score all candidates
   const candidates: ScoredCandidate[] = searchResults.map((r, i) => ({
     title: r.title,
     source: "wikipedia" as const,
-    score: calculateWikiScore(
-      r,
-      i,
-      extracted.keywords ?? [],
-      refinementNames
-    ),
+    score: calculateWikiScore(r, i, extracted.keywords ?? [], refinementNames),
     snippet: r.snippet,
+    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(r.title)}`,
   }));
 
+  // Fetch summary for top result only
   try {
     const topTitle = encodeURIComponent(searchResults[0].title);
     const summaryRes = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${topTitle}`
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${topTitle}`,
     );
 
     if (!summaryRes.ok) {

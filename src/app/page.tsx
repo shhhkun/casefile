@@ -52,7 +52,7 @@ export default function Home() {
         type="text"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        placeholder="Paste YouTube URL"
+        placeholder="Paste a YouTube URL, news article, or Wikipedia link"
         className="border p-2 w-full mb-3"
       />
       <input
@@ -67,7 +67,7 @@ export default function Home() {
         disabled={loading}
         className="bg-black text-white px-4 py-2"
       >
-        {loading ? "Processing..." : "Analyze Video"}
+        {loading ? "Processing..." : "Analyze"}
       </button>
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
@@ -75,10 +75,19 @@ export default function Home() {
       {analysis && (
         <div className="mt-6 space-y-6">
 
+          {/* Source info */}
+          <div>
+            <h2 className="font-bold text-lg mb-2">Source</h2>
+            <p className="text-sm text-gray-500">
+              Type: {analysis.sourceType}
+              {analysis.sourceTitle && ` — ${analysis.sourceTitle}`}
+            </p>
+          </div>
+
           {/* Extracted signals */}
           <div>
             <h2 className="font-bold text-lg mb-2">Extracted Signals</h2>
-            <pre className="text-sm bg-gray-100 text-black p-4 rounded whitespace-pre-wrap">
+            <pre className="text-sm bg-gray-100 p-4 rounded whitespace-pre-wrap">
               {JSON.stringify(analysis.extracted, null, 2)}
             </pre>
           </div>
@@ -86,7 +95,7 @@ export default function Home() {
           {/* Refinement names used */}
           {analysis.refinementNames.length > 0 && (
             <div>
-              <h2 className="font-bold text-lg mb-2">Refinement Names Used</h2>
+              <h2 className="font-bold text-lg mb-2">Refinement Names</h2>
               <p className="text-sm">{analysis.refinementNames.join(", ")}</p>
             </div>
           )}

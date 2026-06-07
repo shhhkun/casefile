@@ -34,4 +34,13 @@ export interface CaseAnalysis {
   wikiUrl: string | null;
   wikiThumbnail: string | null;
   refinementNames: string[];
+  sourceType: "youtube" | "article";
+  sourceTitle: string | null;
+}
+
+export interface ExtractedContent {
+  sourceType: "youtube" | "article";
+  title: string | null;
+  text: string;
+  url: string;
 }

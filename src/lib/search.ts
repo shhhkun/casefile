@@ -12,14 +12,15 @@ interface CourtListenerResult {
 }
 
 const TIER_BASE_SCORES: Record<number, number> = {
-  0: 1.0,  // refinement names all together
-  1: 0.95, // refinement names individual
-  2: 0.85, // both extracted names fuzzy
-  3: 0.75, // defendant + state
-  4: 0.70, // victim + state
-  5: 0.55, // crime type + state
-  6: 0.45, // keywords
-  7: 0.30, // defendant alone
+  0: 1.0,  // quoted refinement names
+  1: 0.95, // unquoted refinement names
+  2: 0.88, // quoted defendant + state
+  3: 0.82, // quoted defendant alone
+  4: 0.75, // quoted victim alone
+  5: 0.68, // quoted both last names
+  6: 0.60, // quoted defendant last + state
+  7: 0.45, // crime type + state
+  8: 0.30, // keywords only
 };
 
 export async function searchCourtListener(
@@ -75,12 +76,14 @@ export async function searchCourtListener(
         });
       }
 
-      if (results.length > 0) break;
+      if (candidates.length >= 3) break;
 
     } catch (err) {
       console.error(`CourtListener query failed: "${query}"`, err);
     }
   }
 
-  return candidates.sort((a, b) => b.score - a.score);
+  return candidates
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 }
