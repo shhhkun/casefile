@@ -9,9 +9,18 @@
     --bg: #1a1a1a;
     --bg2: #252525;
     --bg3: #323232;
+
+    --card-bg: #2f2f2f;
+    --card-bg2: #414141;
+
     --border: #414141;
+    --border2: #3c3c3c;
+    --border3: #505050;
 
     --text: #bdbdbd;
+    --text2: #ffffff;
+
+    --accent: #b8975a;
 
     --test: #0c0c0c;
   }
