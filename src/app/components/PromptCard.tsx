@@ -26,10 +26,12 @@ export default function PromptCard({}) {
               />
             </div>
 
-            <button className="p-2 gap-2 text-(--text2) rounded bg-(--accent) shadow-[inset_0_0_8px_rgba(0,0,0,0.25)]">
-              <Link2 size={20} />
-              <span>Extract URL</span>
-            </button>
+            <div className="flex flex-col justify-end">
+              <button className="flex flex-row items-center h-6.5 p-2 gap-2 text-(--text2) rounded bg-(--accent) shadow-[inset_0_0_8px_rgba(0,0,0,0.25)]">
+                <Link2 size={20} />
+                <span className="whitespace-nowrap">Extract URL</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
