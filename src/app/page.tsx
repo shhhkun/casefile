@@ -53,7 +53,14 @@ export default function Page() {
   return (
     <div className="flex flex-row h-full px-6 pb-6 gap-6">
       <SourceCard></SourceCard>
-      <PromptCard></PromptCard>
+      <PromptCard
+        url={url}
+        setUrl={setUrl}
+        namesInput={namesInput}
+        setNamesInput={setNamesInput}
+        onSubmit={handleSubmit}
+        loading={loading}
+      />
       <ControlsCard></ControlsCard>
     </div>
   );

@@ -1,7 +1,23 @@
 import React from "react";
 import { Menu, Link2 } from "lucide-react";
 
-export default function PromptCard({}) {
+interface PromptCardProps {
+  url: string;
+  setUrl: (url: string) => void;
+  namesInput: string;
+  setNamesInput: (namesInput: string) => void;
+  onSubmit: () => void;
+  loading: boolean;
+}
+
+export default function PromptCard({
+  url,
+  setUrl,
+  namesInput,
+  setNamesInput,
+  onSubmit,
+  loading,
+}: PromptCardProps) {
   return (
     <div className="flex flex-148 flex-col">
       {/* Header */}
@@ -16,20 +32,30 @@ export default function PromptCard({}) {
             <div className="flex flex-col w-full gap-3">
               <input
                 type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
                 placeholder="Enter a source URL..."
                 className="h-6.5 p-2 rounded bg-(--bg2) shadow-[inset_0_4px_4px_rgba(0,0,0,0.25)] focus:outline-(--border2)"
               />
               <input
                 type="text"
+                value={namesInput}
+                onChange={(e) => setNamesInput(e.target.value)}
                 placeholder="Known names related to the case (optional)..."
                 className="h-6.5 p-2 rounded bg-(--bg2) shadow-[inset_0_4px_4px_rgba(0,0,0,0.25)] focus:outline-(--border2)"
               />
             </div>
 
             <div className="flex flex-col justify-end">
-              <button className="flex flex-row items-center h-6.5 p-2 gap-2 text-(--text2) rounded bg-(--accent) shadow-[inset_0_0_8px_rgba(0,0,0,0.25)]">
+              <button
+                onClick={onSubmit}
+                disabled={loading}
+                className="flex flex-row items-center h-6.5 p-2 gap-2 text-(--text2) rounded bg-(--accent) shadow-[inset_0_0_8px_rgba(0,0,0,0.25)]"
+              >
                 <Link2 size={20} />
-                <span className="whitespace-nowrap">Extract URL</span>
+                <span className="whitespace-nowrap">
+                  {loading ? "Processing..." : "Extract URL"}
+                </span>
               </button>
             </div>
           </div>
