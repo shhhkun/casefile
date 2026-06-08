@@ -6,14 +6,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1a1a1a;
+    --bg: rgb(26, 26, 26);
     --bg2: #252525;
     --bg3: #323232;
 
     --card-bg: #2f2f2f;
     --card-bg2: #414141;
 
-    --border: #414141;
+    --border: rgb(65, 65, 65);
     --border2: #3c3c3c;
     --border3: #505050;
 
@@ -39,7 +39,7 @@ h1 {
 
 /* Chrome / Edge / Safari */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
   height: 8px;
 }
 
@@ -53,5 +53,5 @@ h1 {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.20);
 }

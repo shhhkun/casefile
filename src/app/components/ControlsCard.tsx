@@ -38,10 +38,12 @@ export default function ControlsCard({}) {
         <hr className="border-(--border)" />
 
         <div className="flex w-full p-1 text-sm rounded-lg border bg-(--card-bg) border-(--border2)">
-          <textarea
-            placeholder="Add context to refine the case analysis..."
-            className="resize-none w-full min-h-40 p-3 rounded-md border bg(--bg2) border-(--border3) focus:outline-(--border2) shadow-[inset_0_0_32px_rgba(0,0,0,0.25)]"
-          />
+          <div className="w-full rounded-md border border-(--border3) bg(--bg2) overflow-hidden">
+            <textarea
+              placeholder="Add context to refine the case analysis..."
+              className="block resize-none w-full min-h-40 p-3 bg-transparent focus:outline-none shadow-[inset_0_0_32px_rgba(0,0,0,0.25)]"
+            />
+          </div>
         </div>
       </div>
     </div>
