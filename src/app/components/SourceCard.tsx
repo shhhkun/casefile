@@ -29,9 +29,9 @@ function Source({ candidate }: SourceProps) {
         <div className="flex flex-row w-full gap-2">
           <h2 className="flex-1 truncate">{candidate.title}</h2>
           {candidate.source === "wikipedia" ? (
-            <CourtListenerTag />
-          ) : (
             <WikipediaTag />
+          ) : (
+            <CourtListenerTag />
           )}
         </div>
 
