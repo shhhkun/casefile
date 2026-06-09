@@ -19,13 +19,13 @@ export default function PromptCard({
   loading,
 }: PromptCardProps) {
   return (
-    <div className="flex flex-148 flex-col">
+    <div className="flex flex-148 min-w-0 flex-col">
       {/* Header */}
       <div className="flex flex-row h-15.5 px-6 justify-between items-center rounded-t-2xl border-b-2 bg-(--bg3) border-(--border)">
         <h1>Case File</h1> <Menu />
       </div>
       {/* Content */}
-      <div className="flex h-full p-6 flex-col rounded-b-2xl bg-(--bg2)">
+      <div className="flex flex-col h-full p-6 rounded-b-2xl bg-(--bg2)">
         {/* URL insert */}
         <div className="flex w-full p-1 rounded-lg border bg-(--card-bg) border-(--border2)">
           <div className="flex w-full flex-row p-3 gap-3 rounded-md border bg-(--card-bg2) border-(--border3)">
