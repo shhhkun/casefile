@@ -16,7 +16,7 @@ function CourtListenerTag({ url }: TagProps) {
   return (
     <div
       onClick={handleClick}
-      className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
+      className="flex cursor-pointer items-center rounded border border-(--border) bg-(--accent) p-0.5 hover:opacity-70"
       title={url}
     >
       <span className="text-xs text-(--text2) select-none">CourtListener</span>
@@ -34,7 +34,7 @@ function WikipediaTag({ url }: TagProps) {
   return (
     <div
       onClick={handleClick}
-      className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
+      className="flex cursor-pointer items-center rounded border border-(--border) bg-(--accent) p-0.5 hover:opacity-70"
       title={url}
     >
       <span className="text-xs text-(--text2) select-none">Wikipedia</span>
@@ -48,10 +48,10 @@ interface SourceProps {
 
 function Source({ candidate }: SourceProps) {
   return (
-    <div className="w-full border-t-2 border-dashed pt-4 border-(--line) first:border-t-0 first:pt-0">
-      <div className="flex w-full p-4 border-2 rounded-lg bg-(--bg) border-(--border)">
-        <div className="flex flex-col w-full">
-          <div className="flex flex-row w-full gap-2">
+    <div className="w-full border-t-2 border-dashed border-(--line) pt-4 first:border-t-0 first:pt-0">
+      <div className="flex w-full rounded-lg border-2 border-(--border) bg-(--bg) p-4">
+        <div className="flex w-full flex-col">
+          <div className="flex w-full flex-row gap-2">
             <h2 className="flex-1 truncate">{candidate.title}</h2>
             {candidate.source === "wikipedia" ? (
               <WikipediaTag url={candidate.url} />
@@ -86,11 +86,11 @@ interface SourceCardProps {
 
 export default function SourceCard({ analysis }: SourceCardProps) {
   return (
-    <div className="flex flex-94 min-w-0 flex-col">
-      <div className="flex flex-row h-15.5 px-6 justify-between items-center rounded-t-2xl border-2 bg-(--bg) border-(--border)">
+    <div className="flex min-w-0 flex-94 flex-col">
+      <div className="flex h-15.5 flex-row items-center justify-between rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6">
         <h1 className="font-bold">Sources</h1> <PanelLeft />
       </div>
-      <div className="flex flex-col h-full p-6 gap-4 rounded-b-2xl border-x-2 border-b-2 bg-(--bg2) border-(--border)">
+      <div className="flex h-full flex-col gap-4 rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2) p-6">
         {analysis?.candidates.map((c, i) => (
           <Source key={i} candidate={c} />
         ))}

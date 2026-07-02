@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Inter, Merriweather, Archivo, Space_Mono } from 'next/font/google'
+import { Inter, Merriweather, Archivo, Space_Mono } from "next/font/google";
 
 import Home from "./components/Home";
 
@@ -39,8 +39,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full ${inter.variable} ${merriweather.variable} ${spaceMono.variable} ${archivo.variable}`}>
-      <body className="h-full flex flex-col">
+    <html
+      lang="en"
+      className={`h-full ${inter.variable} ${merriweather.variable} ${spaceMono.variable} ${archivo.variable}`}
+    >
+      <body className="flex h-full flex-col">
         <Home>{children}</Home>
       </body>
     </html>

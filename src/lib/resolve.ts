@@ -7,7 +7,7 @@ const groq = new Groq({
 
 export async function resolveCase(
   extracted: ExtractedCase,
-  candidates: ScoredCandidate[]
+  candidates: ScoredCandidate[],
 ): Promise<ResolvedCase | null> {
   if (candidates.length === 0) return null;
 
@@ -31,7 +31,7 @@ Candidate ${i + 1}:
 - Score: ${c.score}
 - Snippet: ${c.snippet ?? "none"}
 - Metadata: ${JSON.stringify(c.metadata ?? {})}
-`
+`,
   )
   .join("\n")}
 

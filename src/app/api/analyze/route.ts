@@ -14,10 +14,7 @@ export async function POST(req: NextRequest) {
     }: { url: string; refinementNames: string[] } = await req.json();
 
     if (!url) {
-      return NextResponse.json(
-        { error: "URL is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
     console.log("Analyze: refinement names:", refinementNames);
@@ -31,7 +28,7 @@ export async function POST(req: NextRequest) {
       console.error("Analyze: content extraction failed:", err);
       return NextResponse.json(
         { error: "Failed to extract content from URL" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -66,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (!resolved) {
       return NextResponse.json(
         { error: "Could not resolve case from search results" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -86,12 +83,8 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json(analysis);
-
   } catch (error) {
     console.error("Analyze: unexpected error:", error);
-    return NextResponse.json(
-      { error: "Analysis failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }
 }

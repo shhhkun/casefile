@@ -2,15 +2,13 @@ import { ExtractedCase } from "./types";
 
 export function generateQueries(
   extracted: ExtractedCase,
-  refinementNames: string[] = []
+  refinementNames: string[] = [],
 ): string[] {
   const queries: string[] = [];
 
   // Tier 0: quoted refinement names (exact, highest confidence)
   if (refinementNames.length > 0) {
-    queries.push(
-      refinementNames.map((n) => `"${n}"`).join(" AND ")
-    );
+    queries.push(refinementNames.map((n) => `"${n}"`).join(" AND "));
   }
 
   // Tier 1: unquoted refinement names (looser match)
@@ -65,7 +63,7 @@ export function generateQueries(
 
 export function generateWikiQuery(
   extracted: ExtractedCase,
-  refinementNames: string[] = []
+  refinementNames: string[] = [],
 ): string {
   const parts: string[] = [];
 

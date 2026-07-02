@@ -15,11 +15,11 @@ export default function Home({ children }: { children: ReactNode }) {
   });
 
   return (
-    <div className="h-dvh relative overflow-hidden bg-(--bg)">
-      <div className="flex h-18 w-full px-6 items-center justify-end fixed top-0 left-0">
+    <div className="relative h-dvh overflow-hidden bg-(--bg)">
+      <div className="fixed top-0 left-0 flex h-18 w-full items-center justify-end px-6">
         <ThemeButton theme={theme} setTheme={setTheme} />
       </div>
-      <div className="h-full pt-18 flex-1 flex flex-col">{children}</div>
+      <div className="flex h-full flex-1 flex-col pt-18">{children}</div>
     </div>
   );
 }

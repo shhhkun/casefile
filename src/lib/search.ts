@@ -12,20 +12,20 @@ interface CourtListenerResult {
 }
 
 const TIER_BASE_SCORES: Record<number, number> = {
-  0: 1.0,  // quoted refinement names
+  0: 1.0, // quoted refinement names
   1: 0.95, // unquoted refinement names
   2: 0.88, // quoted defendant + state
   3: 0.82, // quoted defendant alone
   4: 0.75, // quoted victim alone
   5: 0.68, // quoted both last names
-  6: 0.60, // quoted defendant last + state
+  6: 0.6, // quoted defendant last + state
   7: 0.45, // crime type + state
-  8: 0.30, // keywords only
+  8: 0.3, // keywords only
 };
 
 export async function searchCourtListener(
   extracted: ExtractedCase,
-  refinementNames: string[] = []
+  refinementNames: string[] = [],
 ): Promise<ScoredCandidate[]> {
   const queries = generateQueries(extracted, refinementNames);
   const candidates: ScoredCandidate[] = [];
@@ -43,7 +43,7 @@ export async function searchCourtListener(
     try {
       const response = await fetch(
         `https://www.courtlistener.com/api/rest/v4/search/?${params}`,
-        { headers: { Accept: "application/json" } }
+        { headers: { Accept: "application/json" } },
       );
 
       if (!response.ok) continue;
@@ -52,7 +52,7 @@ export async function searchCourtListener(
       const results: CourtListenerResult[] = data.results ?? [];
 
       console.log(
-        `CourtListener tier ${i}: "${query}" → ${results.length} results`
+        `CourtListener tier ${i}: "${query}" → ${results.length} results`,
       );
 
       for (const r of results.slice(0, 3)) {
@@ -77,13 +77,10 @@ export async function searchCourtListener(
       }
 
       if (candidates.length >= 3) break;
-
     } catch (err) {
       console.error(`CourtListener query failed: "${query}"`, err);
     }
   }
 
-  return candidates
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+  return candidates.sort((a, b) => b.score - a.score).slice(0, 3);
 }
