@@ -2,18 +2,44 @@ import React from "react";
 import { PanelLeft } from "lucide-react";
 import { CaseAnalysis, ScoredCandidate } from "@/lib/types";
 
-function CourtListenerTag({}) {
+interface TagProps {
+  url?: string;
+}
+
+function CourtListenerTag({ url }: TagProps) {
+  const handleClick = () => {
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
-    <div className="flex p-0.5 items-center border rounded bg-(--tag-bg) border-(--tag-border)">
-      <span className="text-xs text-(--tag-border)">CourtListener</span>
+    <div 
+      onClick={handleClick}
+      className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
+      title={url}
+    >
+      <span className="text-xs select-none">CourtListener</span>
     </div>
   );
 }
 
-function WikipediaTag({}) {
+function WikipediaTag({ url }: TagProps) {
+  const handleClick = () => {
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
-    <div className="flex p-0.5 items-center border rounded bg-(--tag-bg) border-(--tag-border)">
-      <span className="text-xs text-(--tag-border)">Wikipedia</span>
+    <div 
+      onClick={handleClick}
+      className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
+      title={url}
+    >
+      <span className="text-xs select-none">
+        Wikipedia
+      </span>
     </div>
   );
 }
@@ -30,9 +56,9 @@ function Source({ candidate }: SourceProps) {
           <div className="flex flex-row w-full gap-2">
             <h2 className="flex-1 truncate">{candidate.title}</h2>
             {candidate.source === "wikipedia" ? (
-              <WikipediaTag />
+              <WikipediaTag url={candidate.url}/>
             ) : (
-              <CourtListenerTag />
+              <CourtListenerTag url={candidate.url}/>
             )}
           </div>
 
@@ -63,7 +89,7 @@ interface SourceCardProps {
 export default function SourceCard({ analysis }: SourceCardProps) {
   return (
     <div className="flex flex-94 min-w-0 flex-col">
-      <div className="flex flex-row h-15.5 px-6 justify-between items-center rounded-t-2xl border-2 bg-(--bg3) border-(--border)">
+      <div className="flex flex-row h-15.5 px-6 justify-between items-center rounded-t-2xl border-2 bg-(--bg) border-(--border)">
         <h1 className="font-bold">Sources</h1> <PanelLeft />
       </div>
       <div className="flex flex-col h-full p-6 gap-4 rounded-b-2xl border-x-2 border-b-2 bg-(--bg2) border-(--border)">

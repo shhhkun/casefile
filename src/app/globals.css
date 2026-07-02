@@ -30,15 +30,9 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #f7f6f1;
-    --bg2: #f7f6f1;
-    --bg3: #f7f6f1;
-
-    --card-bg: #f7f6f1;
-    --card-bg2: #f7f6f1;
+    --bg2: #ffffff;
 
     --border: #15140f;
-    --border2: #3c3c3c;
-    --border3: #505050;
 
     --text: #15140f;
     --text2: #ffffff;
@@ -47,12 +41,6 @@
     --line: #e5e2d6;
 
     --accent: #29ff3b;
-
-    --tag-bg: #29ff3b;
-    --tag-bg2: #272a2e;
-
-    --tag-border: #000000;
-    --tag-border2: #7d9bb2;
 
     --test: #e2e1dc; /* header section color */
   }
