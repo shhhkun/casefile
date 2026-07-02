@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Inter, Merriweather } from 'next/font/google'
+import { Inter, Merriweather, Archivo, Space_Mono } from 'next/font/google'
 
 import Home from "./components/Home";
 
@@ -21,13 +21,25 @@ const merriweather = Merriweather({
   variable: "--font-merriweather",
 });
 
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
+});
+
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-archivo",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full ${inter.variable} ${merriweather.variable}`}>
+    <html lang="en" className={`h-full ${inter.variable} ${merriweather.variable} ${spaceMono.variable} ${archivo.variable}`}>
       <body className="h-full flex flex-col">
         <Home>{children}</Home>
       </body>

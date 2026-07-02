@@ -4,11 +4,11 @@ import { PanelRight } from "lucide-react";
 export default function ControlsCard({}) {
   return (
     <div className="flex flex-94 min-w-0 flex-col">
-      <div className="flex flex-row h-15.5 px-6 justify-between items-center rounded-t-2xl border-b-2 bg-(--bg3) border-(--border)">
+      <div className="flex flex-row h-15.5 px-6 justify-between items-center rounded-t-2xl border-2 bg-(--bg3) border-(--border)">
         <h1>Investigation Controls</h1> <PanelRight />
       </div>
       {/* Content */}
-      <div className="flex flex-col h-full p-6 gap-3 rounded-b-2xl bg-(--bg2)">
+      <div className="flex flex-col h-full p-6 gap-3 rounded-b-2xl border-x-2 border-b-2 bg-(--bg2) border-(--border)">
         {/* System Instructions */}
         <h2>System Instructions (read-only)</h2>
 
