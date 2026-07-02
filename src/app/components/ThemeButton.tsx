@@ -13,7 +13,7 @@ export default function ThemeButton({ theme, setTheme }: ThemeControlsProps) {
 
   return (
     <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-      <div className="flex flex-row rounded-lg border-2 border-(--border) overflow-hidden">
+      <div className="flex flex-row rounded-lg border-2 border-(--border) overflow-hidden cursor-pointer">
         <div className="flex p-2 bg-transparent in-[.light]:bg-(--bg2)">
           <Sun />
         </div>

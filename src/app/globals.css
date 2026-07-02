@@ -41,6 +41,7 @@ html.light {
   --text: #15140f;
   --text2: #15140f;
   --text3: #6b6b6b;
+  --text4: #f7f6f1;
 
   --line: #e5e2d6;
 
@@ -56,9 +57,10 @@ html.dark {
   --text: #f3f3f5;
   --text2: #2d2d34;
   --text3: #8a8a93;
+  --text4: #f3f3f5;
 
   --line: #26262b;
-  
+
   --accent: #22c55e;
 }
 

@@ -49,7 +49,7 @@ export default function PromptCard({
             <button
               onClick={onSubmit}
               disabled={loading}
-              className="flex flex-row items-center h-7 p-2 gap-2 text-(--text2) rounded border cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
+              className="flex flex-row items-center h-7 p-2 gap-2 text-(--text2) rounded border cursor-pointer bg-(--accent) border-(--border) hover:text-(--text4) hover:bg-(--border) transition-colors duration-300 ease-in-out"
             >
               <Play size={16} />
               <span className="whitespace-nowrap">

@@ -14,7 +14,7 @@ function CourtListenerTag({ url }: TagProps) {
   };
 
   return (
-    <div 
+    <div
       onClick={handleClick}
       className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
       title={url}
@@ -32,14 +32,12 @@ function WikipediaTag({ url }: TagProps) {
   };
 
   return (
-    <div 
+    <div
       onClick={handleClick}
       className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
       title={url}
     >
-      <span className="text-xs text-(--text2) select-none">
-        Wikipedia
-      </span>
+      <span className="text-xs text-(--text2) select-none">Wikipedia</span>
     </div>
   );
 }
@@ -56,9 +54,9 @@ function Source({ candidate }: SourceProps) {
           <div className="flex flex-row w-full gap-2">
             <h2 className="flex-1 truncate">{candidate.title}</h2>
             {candidate.source === "wikipedia" ? (
-              <WikipediaTag url={candidate.url}/>
+              <WikipediaTag url={candidate.url} />
             ) : (
-              <CourtListenerTag url={candidate.url}/>
+              <CourtListenerTag url={candidate.url} />
             )}
           </div>
 
