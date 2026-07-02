@@ -19,7 +19,7 @@ function CourtListenerTag({ url }: TagProps) {
       className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
       title={url}
     >
-      <span className="text-xs select-none">CourtListener</span>
+      <span className="text-xs text-(--text2) select-none">CourtListener</span>
     </div>
   );
 }
@@ -37,7 +37,7 @@ function WikipediaTag({ url }: TagProps) {
       className="flex p-0.5 items-center border rounded cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
       title={url}
     >
-      <span className="text-xs select-none">
+      <span className="text-xs text-(--text2) select-none">
         Wikipedia
       </span>
     </div>

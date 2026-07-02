@@ -34,14 +34,14 @@ export default function PromptCard({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Enter a source URL..."
-              className="h-7 p-2 rounded border bg-(--bg2) border-(--border) focus:outline-(--border)"
+              className="h-7 p-2 rounded border bg-(--bg2) border-(--border) focus:outline-none focus:ring focus:ring-(--border)"
             />
             <input
               type="text"
               value={namesInput}
               onChange={(e) => setNamesInput(e.target.value)}
               placeholder="Known names related to the case (optional)..."
-              className="h-7 p-2 rounded border bg-(--bg2) border-(--border) focus:outline-(--border)"
+              className="h-7 p-2 rounded border bg-(--bg2) border-(--border) focus:outline-none focus:ring focus:ring-(--border)"
             />
           </div>
 
@@ -49,7 +49,7 @@ export default function PromptCard({
             <button
               onClick={onSubmit}
               disabled={loading}
-              className="flex flex-row items-center h-7 p-2 gap-2 text-(--text) rounded border cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
+              className="flex flex-row items-center h-7 p-2 gap-2 text-(--text2) rounded border cursor-pointer hover:opacity-70 bg-(--accent) border-(--border)"
             >
               <Play size={16} />
               <span className="whitespace-nowrap">
