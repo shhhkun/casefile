@@ -16,35 +16,35 @@ export async function resolveCase(
 
   const prompt = `You are a legal case identifier. Given the extracted case signals from a true crime video transcript and a list of candidate cases from search results, determine which candidate best matches the described case.
 
-NOTE: Extracted names may be phonetically inaccurate due to speech-to-text errors. Prioritize matches on location, year, crime type, and keywords over exact name matches.
+                  NOTE: Extracted names may be phonetically inaccurate due to speech-to-text errors. Prioritize matches on location, year, crime type, and keywords over exact name matches.
 
-Extracted signals:
-${JSON.stringify(extracted, null, 2)}
+                  Extracted signals:
+                  ${JSON.stringify(extracted, null, 2)}
 
-Candidates:
-${top
-  .map(
-    (c, i) => `
-Candidate ${i + 1}:
-- Title: ${c.title}
-- Source: ${c.source}
-- Score: ${c.score}
-- Snippet: ${c.snippet ?? "none"}
-- Metadata: ${JSON.stringify(c.metadata ?? {})}
-`,
-  )
-  .join("\n")}
+                  Candidates:
+                  ${top
+                    .map(
+                      (c, i) => `
+                  Candidate ${i + 1}:
+                  - Title: ${c.title}
+                  - Source: ${c.source}
+                  - Score: ${c.score}
+                  - Snippet: ${c.snippet ?? "none"}
+                  - Metadata: ${JSON.stringify(c.metadata ?? {})}
+                  `,
+                    )
+                    .join("\n")}
 
-Return ONLY valid JSON with no markdown, no code blocks, no explanation:
-{
-  "selectedIndex": 0,
-  "confidence": 0.0,
-  "reasoning": "string"
-}
+                  Return ONLY valid JSON with no markdown, no code blocks, no explanation:
+                  {
+                    "selectedIndex": 0,
+                    "confidence": 0.0,
+                    "reasoning": "string"
+                  }
 
-selectedIndex is the 0-based index of the best matching candidate.
-confidence is a number between 0 and 1.
-reasoning is a brief explanation of why this candidate was selected.`;
+                  selectedIndex is the 0-based index of the best matching candidate.
+                  confidence is a number between 0 and 1.
+                  reasoning is a brief explanation of why this candidate was selected.`;
 
   const completion = await groq.chat.completions.create({
     model: "openai/gpt-oss-120b",

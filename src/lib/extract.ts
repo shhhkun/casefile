@@ -18,27 +18,27 @@ export async function extractCase(transcript: string): Promise<ExtractedCase> {
         role: "user",
         content: `Analyze this text and extract structured information about the primary criminal case being described.
 
-IMPORTANT INSTRUCTIONS:
-- Extract full legal names including middle names where available (e.g. "Hadden Irving Clark" not "Hadden Clark")
-- Treat extracted names as potentially noisy if source is a speech-to-text transcript
-- Treat location, year, crime type, and keywords as the most reliable signals
-- For defendant and victim, always prefer the most complete name available
+                  IMPORTANT INSTRUCTIONS:
+                  - Extract full legal names including middle names where available (e.g. "Hadden Irving Clark" not "Hadden Clark")
+                  - Treat extracted names as potentially noisy if source is a speech-to-text transcript
+                  - Treat location, year, crime type, and keywords as the most reliable signals
+                  - For defendant and victim, always prefer the most complete name available
 
-Use this exact structure:
-{
-  "caseName": "string or null",
-  "defendant": "string or null",
-  "victim": "string or null",
-  "crimeType": "string or null",
-  "jurisdiction": "string or null",
-  "state": "string or null",
-  "approximateYear": "string or null",
-  "keywords": ["string"],
-  "confidence": "high | medium | low"
-}
+                  Use this exact structure:
+                  {
+                    "caseName": "string or null",
+                    "defendant": "string or null",
+                    "victim": "string or null",
+                    "crimeType": "string or null",
+                    "jurisdiction": "string or null",
+                    "state": "string or null",
+                    "approximateYear": "string or null",
+                    "keywords": ["string"],
+                    "confidence": "high | medium | low"
+                  }
 
-Text:
-${transcript.slice(0, 12000)}`,
+                  Text:
+                  ${transcript.slice(0, 12000)}`,
       },
     ],
     temperature: 0.1,

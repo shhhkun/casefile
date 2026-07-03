@@ -5,6 +5,8 @@ import { searchCourtListener } from "@/lib/search";
 import { searchWikipedia } from "@/lib/wiki";
 import { resolveCase } from "@/lib/resolve";
 import { CaseAnalysis } from "@/lib/types";
+import { fetchEvidence } from "@/lib/evidence";
+import { generateOverview } from "@/lib/overview";
 
 export async function POST(req: NextRequest) {
   try {
@@ -69,6 +71,12 @@ export async function POST(req: NextRequest) {
 
     console.log("Analyze: resolved:", JSON.stringify(resolved, null, 2));
 
+    // Step 6: fetch evidence
+    const evidence = await fetchEvidence(resolved, content.text);
+
+    // Step 7: generate case overview
+    const overview = await generateOverview(evidence);
+
     const analysis: CaseAnalysis = {
       extracted,
       originalExtracted: extracted,
@@ -80,6 +88,7 @@ export async function POST(req: NextRequest) {
       refinementNames,
       sourceType: content.sourceType,
       sourceTitle: content.title,
+      overview,
     };
 
     return NextResponse.json(analysis);

@@ -36,6 +36,7 @@ export interface CaseAnalysis {
   refinementNames: string[];
   sourceType: "youtube" | "article";
   sourceTitle: string | null;
+  overview: CaseOverview;
 }
 
 export interface ExtractedContent {
@@ -43,4 +44,18 @@ export interface ExtractedContent {
   title: string | null;
   text: string;
   url: string;
+}
+
+export interface CaseOverview {
+  summary: string;
+  timeline: string[];
+  people: {
+    name: string;
+    role: string;
+  }[];
+  legalOutcome: string;
+  faq: {
+    question: string;
+    answer: string;
+  }[];
 }
