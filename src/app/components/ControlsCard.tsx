@@ -1,7 +1,12 @@
 import React from "react";
 import { PanelRight } from "lucide-react";
 
-export default function ControlsCard({}) {
+interface ControlsProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
   return (
     <div className="flex min-w-0 flex-94 flex-col">
       <div className="flex h-15.5 flex-row items-center justify-between rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6">

@@ -14,6 +14,9 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false);
+
   const parseNames = (input: string): string[] => {
     return input
       .split(",")
@@ -52,7 +55,11 @@ export default function Page() {
 
   return (
     <div className="flex h-full flex-row gap-6 px-6 pb-6">
-      <SourceCard analysis={analysis} />
+      <SourceCard
+        analysis={analysis}
+        isCollapsed={isLeftCollapsed}
+        onToggle={() => setIsLeftCollapsed(!isLeftCollapsed)}
+      />
       <PromptCard
         url={url}
         setUrl={setUrl}
@@ -61,7 +68,10 @@ export default function Page() {
         onSubmit={handleSubmit}
         loading={loading}
       />
-      <ControlsCard></ControlsCard>
+      <ControlsCard
+        isCollapsed={isRightCollapsed}
+        onToggle={() => setIsRightCollapsed(!isRightCollapsed)}
+      />
     </div>
   );
 

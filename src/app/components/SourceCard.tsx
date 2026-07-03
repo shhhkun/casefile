@@ -82,18 +82,34 @@ function Source({ candidate }: SourceProps) {
 
 interface SourceCardProps {
   analysis: CaseAnalysis | null;
+  isCollapsed: boolean;
+  onToggle: () => void;
 }
 
-export default function SourceCard({ analysis }: SourceCardProps) {
+export default function SourceCard({
+  analysis,
+  isCollapsed,
+  onToggle,
+}: SourceCardProps) {
   return (
-    <div className="flex min-w-0 flex-94 flex-col">
-      <div className="flex h-15.5 flex-row items-center justify-between rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6">
-        <h1 className="font-bold">Sources</h1> <PanelLeft />
+    <div
+      className={`flex min-w-0 flex-col transition-all duration-300 ease-in-out ${isCollapsed ? "w-16 flex-none" : "flex-94"}`}
+    >
+      <div
+        className={`flex h-15.5 flex-row items-center rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6 ${isCollapsed ? "justify-center" : "justify-between"}`}
+      >
+        {!isCollapsed && <h1 className="font-bold">Sources</h1>}
+        <button
+          onClick={onToggle}
+          className="cursor-pointer rounded p-1 transition-colors duration-200 hover:bg-(--bg2)"
+        >
+          <PanelLeft />
+        </button>
       </div>
-      <div className="flex h-full flex-col gap-4 rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2) p-6">
-        {analysis?.candidates.map((c, i) => (
-          <Source key={i} candidate={c} />
-        ))}
+
+      <div className="flex h-full flex-col gap-4 overflow-hidden rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2) p-6">
+        {!isCollapsed &&
+          analysis?.candidates.map((c, i) => <Source key={i} candidate={c} />)}
       </div>
     </div>
   );
