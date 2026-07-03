@@ -95,6 +95,7 @@ export default function SourceCard({
     <div
       className={`flex min-w-0 flex-col transition-all duration-300 ease-in-out ${isCollapsed ? "w-16 flex-none" : "flex-94"}`}
     >
+      {/* Header */}
       <div
         className={`flex h-15.5 flex-row items-center rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6 ${isCollapsed ? "justify-center" : "justify-between"}`}
       >
@@ -107,6 +108,7 @@ export default function SourceCard({
         </button>
       </div>
 
+      {/* Content */}
       <div className="flex h-full flex-col gap-4 overflow-hidden rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2) p-6">
         {!isCollapsed &&
           analysis?.candidates.map((c, i) => <Source key={i} candidate={c} />)}
