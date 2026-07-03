@@ -13,9 +13,13 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
     >
       {/* Header */}
       <div
-        className={`flex h-15.5 flex-row items-center rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6 ${isCollapsed ? "justify-center" : "justify-between"}`}
+        className={`flex h-15.5 shrink-0 flex-row items-center rounded-t-2xl border-2 border-(--border) bg-(--bg) px-6 ${isCollapsed ? "justify-center" : "justify-between"}`}
       >
-        {!isCollapsed && <h1 className="font-bold">Investigation Controls</h1>}
+        {!isCollapsed && (
+          <h1 className="min-w-0 truncate font-bold whitespace-nowrap">
+            Investigation Controls
+          </h1>
+        )}
         <button
           onClick={onToggle}
           className="cursor-pointer rounded p-1 transition-colors duration-200 hover:bg-(--bg2)"

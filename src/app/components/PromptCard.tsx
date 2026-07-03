@@ -21,7 +21,7 @@ export default function PromptCard({
   return (
     <div className="flex min-w-0 grow flex-col transition-all duration-300 ease-in-out">
       {/* Header */}
-      <div className="flex h-15.5 flex-row items-center justify-between rounded-t-2xl border-2 border-(--border) bg-(--) px-6">
+      <div className="flex h-15.5 shrink-0 flex-row items-center justify-between rounded-t-2xl border-2 border-(--border) bg-(--) px-6">
         <h1 className="font-bold">Case File</h1> <Menu />
       </div>
       {/* Content */}
