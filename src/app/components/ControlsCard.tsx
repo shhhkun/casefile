@@ -9,7 +9,7 @@ interface ControlsProps {
 export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
   return (
     <div
-      className={`flex min-w-0 basis-1/4 flex-col transition-all duration-300 ease-in-out ${isCollapsed ? "max-w-16" : "max-w-[25%]"}`}
+      className={`flex min-w-0 shrink-0 basis-1/4 flex-col transition-all duration-300 ease-in-out ${isCollapsed ? "max-w-16" : "max-w-[25%]"}`}
     >
       {/* Header */}
       <div
@@ -60,7 +60,7 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
             <div className="bg(--bg2) w-full overflow-hidden rounded-lg border-2 border-(--border)">
               <textarea
                 placeholder="Add context to refine the case analysis..."
-                className="block min-h-40 w-full resize-none bg-(--accent) p-4 focus:outline-none"
+                className="block min-h-40 w-full resize-none bg-(--accent) p-4 placeholder-(--text)/50 focus:outline-none"
               />
             </div>
           </>

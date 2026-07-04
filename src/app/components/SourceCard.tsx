@@ -93,7 +93,7 @@ export default function SourceCard({
 }: SourceCardProps) {
   return (
     <div
-      className={`flex min-w-0 basis-1/4 flex-col transition-all duration-300 ease-in-out ${isCollapsed ? "max-w-16" : "max-w-[25%]"}`}
+      className={`flex min-w-0 shrink-0 basis-1/4 flex-col transition-all duration-300 ease-in-out ${isCollapsed ? "max-w-16" : "max-w-[25%]"}`}
     >
       {/* Header */}
       <div
