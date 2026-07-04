@@ -32,7 +32,7 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
         {!isCollapsed && (
           <>
             {/* System Instructions */}
-            <section>
+            <section className="flex flex-col gap-4">
               <h2>System Instructions (read-only)</h2>
 
               <hr className="border-t-2 border-(--line)" />
@@ -55,7 +55,7 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
             </section>
 
             {/* Your Instructions */}
-            <section>
+            <section className="flex flex-col gap-4">
               <h2>Your Instructions (optional)</h2>
 
               <hr className="border-t-2 border-(--line)" />
