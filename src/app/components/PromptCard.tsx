@@ -78,9 +78,9 @@ export default function PromptCard({
       {/* Content */}
       <div className="flex h-full flex-col overflow-hidden rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2)">
         <div className="p-6">
-          {/* URL insert */}
           <div className="flex w-full flex-row gap-4 rounded-lg border-2 border-(--border) bg-(--bg) p-4">
-            <div className="flex w-full flex-col gap-3">
+            {/* URL insert */}
+            <section className="flex w-full flex-col gap-3">
               <input
                 type="text"
                 value={url}
@@ -95,10 +95,10 @@ export default function PromptCard({
                 placeholder="Known names related to the case (optional)..."
                 className="h-7 rounded border border-(--border) bg-(--bg2) p-2 placeholder-(--text)/50 focus:ring focus:ring-(--border) focus:outline-none"
               />
-            </div>
+            </section>
 
             {/* Extract button */}
-            <div className="flex flex-col justify-end">
+            <section className="flex flex-col justify-end">
               <button
                 onClick={onSubmit}
                 disabled={loading}
@@ -109,16 +109,16 @@ export default function PromptCard({
                   {loading ? "Processing..." : "Extract URL"}
                 </span>
               </button>
-            </div>
+            </section>
           </div>
         </div>
 
         {/* Case overview */}
-        <div className="overflow-y-scroll px-6 pb-6">
+        <section className="overflow-y-scroll px-6 pb-6">
           {analysis?.overview && (
             <CaseOverviewPanel overview={analysis.overview} />
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

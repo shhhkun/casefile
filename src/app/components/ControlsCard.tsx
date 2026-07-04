@@ -32,37 +32,41 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
         {!isCollapsed && (
           <>
             {/* System Instructions */}
-            <h2>System Instructions (read-only)</h2>
+            <section>
+              <h2>System Instructions (read-only)</h2>
 
-            <hr className="border-t-2 border-(--line)" />
+              <hr className="border-t-2 border-(--line)" />
 
-            <div className="flex w-full rounded-lg border-2 border-(--border) bg-(--bg) p-4">
-              <p>
-                - Extract full legal names including middle names where
-                available (e.g. &quot;Hadden Irving Clark&quot; not &quot;Hadden
-                Clark&quot;)
-                <br />
-                - Treat extracted names as potentially noisy if source is a
-                speech-to-text transcript
-                <br />
-                - Treat location, year, crime type, and keywords as the most
-                reliable signals
-                <br />- For defendant and victim, always prefer the most
-                complete name available
-              </p>
-            </div>
+              <div className="flex w-full rounded-lg border-2 border-(--border) bg-(--bg) p-4">
+                <p>
+                  - Extract full legal names including middle names where
+                  available (e.g. &quot;Hadden Irving Clark&quot; not
+                  &quot;Hadden Clark&quot;)
+                  <br />
+                  - Treat extracted names as potentially noisy if source is a
+                  speech-to-text transcript
+                  <br />
+                  - Treat location, year, crime type, and keywords as the most
+                  reliable signals
+                  <br />- For defendant and victim, always prefer the most
+                  complete name available
+                </p>
+              </div>
+            </section>
 
             {/* Your Instructions */}
-            <h2>Your Instructions (optional)</h2>
+            <section>
+              <h2>Your Instructions (optional)</h2>
 
-            <hr className="border-t-2 border-(--line)" />
+              <hr className="border-t-2 border-(--line)" />
 
-            <div className="bg(--bg2) w-full overflow-hidden rounded-lg border-2 border-(--border)">
-              <textarea
-                placeholder="Add context to refine the case analysis..."
-                className="block min-h-40 w-full resize-none bg-(--accent) p-4 placeholder-(--text)/50 focus:outline-none"
-              />
-            </div>
+              <div className="bg(--bg2) w-full overflow-hidden rounded-lg border-2 border-(--border)">
+                <textarea
+                  placeholder="Add context to refine the case analysis..."
+                  className="block min-h-40 w-full resize-none bg-(--accent) p-4 placeholder-(--text)/50 focus:outline-none"
+                />
+              </div>
+            </section>
           </>
         )}
       </div>
