@@ -15,6 +15,9 @@ html.light {
   --line: #e5e2d6;
 
   --accent: #29ff3b;
+
+  --scroll: rgba(21, 20, 15, 0.25);
+  --scroll-hover: rgba(21, 20, 15, 0.35);
 }
 
 html.dark {
@@ -31,6 +34,9 @@ html.dark {
   --line: #26262b;
 
   --accent: #22c55e;
+
+  --scroll: rgb(229, 226, 214, 0.55);
+  --scroll-hover: rgb(229, 226, 214, 0.75);
 }
 
 body {
@@ -55,10 +61,10 @@ h1 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--scroll);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--scroll-hover);
 }
