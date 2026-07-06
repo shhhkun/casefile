@@ -78,7 +78,7 @@ export default function PromptCard({
       {/* Content */}
       <div className="flex h-full flex-col overflow-hidden rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2)">
         <div className="p-6">
-          <div className="flex w-full flex-row gap-4 rounded-lg border-2 border-(--border) bg-(--bg) p-4">
+          <div className="mx-auto flex w-full max-w-4xl flex-row gap-4 rounded-lg border-2 border-(--border) bg-(--bg) p-4">
             {/* URL insert */}
             <section className="flex w-full flex-col gap-3">
               <input
@@ -115,9 +115,11 @@ export default function PromptCard({
 
         {/* Case overview */}
         <section className="overflow-y-scroll px-6 pb-6">
-          {analysis?.overview && (
-            <CaseOverviewPanel overview={analysis.overview} />
-          )}
+          <div className="mx-auto max-w-4xl">
+            {analysis?.overview && (
+              <CaseOverviewPanel overview={analysis.overview} />
+            )}
+          </div>
         </section>
       </div>
     </div>
