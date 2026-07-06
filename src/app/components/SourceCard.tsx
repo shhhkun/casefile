@@ -51,7 +51,7 @@ function Source({ candidate }: SourceProps) {
     <div className="w-full border-t-2 border-dashed border-(--line) pt-4 first:border-t-0 first:pt-0">
       <div className="flex w-full rounded-lg border-2 border-(--border) bg-(--bg) p-4">
         <div className="flex w-full flex-col">
-          <div className="flex w-full flex-row gap-2">
+          <div className="flex flex-row gap-2">
             <h2 className="flex-1 truncate">{candidate.title}</h2>
             {candidate.source === "wikipedia" ? (
               <WikipediaTag url={candidate.url} />
@@ -114,7 +114,7 @@ export default function SourceCard({
 
       {/* Content */}
       <div className="flex h-full rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2) p-6">
-        <section className="flex flex-col gap-4">
+        <section className="flex w-full flex-col gap-4">
           {!isCollapsed &&
             analysis?.candidates.map((c, i) => (
               <Source key={i} candidate={c} />
