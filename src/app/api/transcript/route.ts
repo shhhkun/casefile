@@ -17,8 +17,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ transcript: fullText });
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      { error: "Failed to fetch transcript" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch transcript",
+      },
       { status: 500 },
     );
   }
