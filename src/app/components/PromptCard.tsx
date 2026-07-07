@@ -11,12 +11,27 @@ function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
       </section>
 
       <section>
-        <h2 className="mb-2 font-semibold">Timeline</h2>
-        <ul className="list-disc pl-8 text-sm">
-          {overview.timeline.map((t, i) => (
-            <li key={i}>{t}</li>
+        <h2 className="mb-4 font-semibold">Timeline</h2>
+
+        <div className="space-y-2 pl-4">
+          {overview.timeline.map((event, i) => (
+            <div key={i} className="flex gap-4">
+              {/* Dot & line */}
+              <div className="flex flex-col items-center">
+                <div className="aspect-square size-3 rounded-full bg-(--accent)" />
+
+                {i < overview.timeline.length - 1 && (
+                  <div className="mt-2 h-full w-px bg-(--line)" />
+                )}
+              </div>
+
+              {/* Timeline description */}
+              <div className="-mt-1 pb-6">
+                <p className="text-sm font-medium">{event}</p>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
 
       <section>
@@ -40,8 +55,8 @@ function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
         <div className="flex flex-col gap-2 text-sm">
           {overview.faq.map((f, i) => (
             <div key={i}>
-              <p className="font-medium">{f.question}</p>
-              <p className="text-(--text3)">{f.answer}</p>
+              <p className="pl-4 font-medium">{f.question}</p>
+              <p className="pl-4 text-(--text3)">{f.answer}</p>
               {i !== overview.faq.length - 1 && (
                 <hr className="mt-2 border-t-2 border-dashed border-(--line)" />
               )}
