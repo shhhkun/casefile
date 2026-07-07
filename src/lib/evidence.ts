@@ -18,6 +18,16 @@ export interface Evidence {
   };
 }
 
+// Limit long text/transcript extractions to first 60% and last 40% of maxChars
+function limitText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  const head = Math.floor(maxChars * 0.6);
+  const tail = Math.floor(maxChars * 0.4);
+
+  return text.slice(0, head) + "\n\n[Middle omitted]\n\n" + text.slice(-tail);
+}
+
 // Fetch full source documents for the resolved case
 export async function fetchEvidence(
   resolved: ResolvedCase,
@@ -27,7 +37,7 @@ export async function fetchEvidence(
 
   // Always include original extracted input
   const evidence: Evidence = {
-    originalText,
+    originalText: limitText(originalText, 14000),
   };
 
   try {
@@ -43,7 +53,7 @@ export async function fetchEvidence(
 
         evidence.wikipedia = {
           title: data.title,
-          text: data.extract,
+          text: limitText(data.extract, 6000),
           url: data.content_urls?.desktop?.page ?? selected.url,
         };
       }
@@ -54,12 +64,45 @@ export async function fetchEvidence(
 
       evidence.courtlistener = {
         title: selected.title,
-        text: selected.snippet ?? "",
+        text: selected.snippet ?? "", // 4000 limit once arg type fixed
         url: selected.url,
         court: selected.metadata?.court,
         dateFiled: selected.metadata?.dateFiled,
       };
     }
+
+    console.log("Evidence sizes:");
+    console.log(
+      "Original text:",
+      evidence.originalText?.length ?? 0,
+      "chars",
+      "≈",
+      Math.ceil((evidence.originalText?.length ?? 0) / 4),
+      "tokens",
+    );
+    console.log(
+      "Wikipedia:",
+      evidence.wikipedia?.text.length ?? 0,
+      "chars",
+      "≈",
+      Math.ceil((evidence.wikipedia?.text.length ?? 0) / 4),
+      "tokens",
+    );
+    console.log(
+      "CourtListener:",
+      evidence.courtlistener?.text.length ?? 0,
+      "chars",
+      "≈",
+      Math.ceil((evidence.courtlistener?.text.length ?? 0) / 4),
+      "tokens",
+    );
+    console.log(
+      "Total evidence chars:",
+      JSON.stringify(evidence).length,
+      "≈",
+      Math.ceil(JSON.stringify(evidence).length / 4),
+      "tokens",
+    );
   } catch (err) {
     console.error("Evidence fetch failed:", err);
   }
