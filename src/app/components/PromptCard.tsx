@@ -21,7 +21,7 @@ function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
                 <div className="aspect-square size-3 rounded-full bg-(--accent)" />
 
                 {i < overview.timeline.length - 1 && (
-                  <div className="mt-2 h-full w-px bg-(--line)" />
+                  <div className="mt-2 h-full w-0.5 bg-(--line)" />
                 )}
               </div>
 
