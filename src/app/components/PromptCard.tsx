@@ -6,13 +6,13 @@ function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
   return (
     <div className="flex flex-col gap-4">
       <section>
-        <h2 className="font-semibold">Summary</h2>
+        <h2 className="mb-2 font-semibold">Summary</h2>
         <p className="text-sm">{overview.summary}</p>
       </section>
 
       <section>
-        <h2 className="font-semibold">Timeline</h2>
-        <ul className="list-disc pl-5 text-sm">
+        <h2 className="mb-2 font-semibold">Timeline</h2>
+        <ul className="list-disc pl-8 text-sm">
           {overview.timeline.map((t, i) => (
             <li key={i}>{t}</li>
           ))}
@@ -20,7 +20,7 @@ function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
       </section>
 
       <section>
-        <h2 className="font-semibold">People</h2>
+        <h2 className="mb-2 font-semibold">People</h2>
         <div className="text-sm">
           {overview.people.map((p, i) => (
             <div key={i}>
@@ -31,17 +31,20 @@ function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
       </section>
 
       <section>
-        <h2 className="font-semibold">Legal Outcome</h2>
+        <h2 className="mb-2 font-semibold">Legal Outcome</h2>
         <p className="text-sm">{overview.legalOutcome}</p>
       </section>
 
       <section>
-        <h2 className="font-semibold">FAQs</h2>
-        <div className="space-y-2 text-sm">
+        <h2 className="mb-2 font-semibold">FAQs</h2>
+        <div className="flex flex-col gap-2 text-sm">
           {overview.faq.map((f, i) => (
             <div key={i}>
-              <p className="font-medium">Q: {f.question}</p>
-              <p>A: {f.answer}</p>
+              <p className="font-medium">{f.question}</p>
+              <p className="text-(--text3)">{f.answer}</p>
+              {i !== overview.faq.length - 1 && (
+                <hr className="mt-2 border-t-2 border-dashed border-(--line)" />
+              )}
             </div>
           ))}
         </div>
@@ -78,7 +81,7 @@ export default function PromptCard({
       {/* Content */}
       <div className="flex h-full flex-col overflow-hidden rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2)">
         <div className="p-6">
-          <div className="mx-auto flex w-full max-w-4xl flex-row gap-4 rounded-lg border-2 border-(--border) bg-(--bg) p-4">
+          <div className="mx-auto flex w-full max-w-5xl flex-row gap-4 rounded-lg border-2 border-(--border) bg-(--bg) p-4">
             {/* URL insert */}
             <section className="flex w-full flex-col gap-3">
               <input
@@ -114,7 +117,7 @@ export default function PromptCard({
         </div>
 
         {/* Case overview */}
-        <section className="overflow-y-scroll px-6 pb-6">
+        <section className="overflow-y-scroll px-12 pb-6">
           <div className="mx-auto max-w-4xl">
             {analysis?.overview && (
               <CaseOverviewPanel overview={analysis.overview} />
