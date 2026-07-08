@@ -61,7 +61,7 @@ export async function searchCourtListener(
 
         const normalizedApiScore = Math.min((r.score ?? 0) / 20, 1.0);
         const tierScore = TIER_BASE_SCORES[i] ?? 0.3;
-        const combinedScore = tierScore * 0.6 + normalizedApiScore * 0.4;
+        const combinedScore = tierScore * 0.75 + normalizedApiScore * 0.25;
 
         candidates.push({
           title: r.caseName,

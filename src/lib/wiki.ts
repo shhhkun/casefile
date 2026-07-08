@@ -26,7 +26,8 @@ function calculateWikiScore(
   keywords: string[],
   refinementNames: string[],
 ): number {
-  const rankScore = rank === 0 ? 0.7 : rank === 1 ? 0.5 : 0.3;
+  // Scores: result1 = 1, result2 = 0.7, result3 = 0.4
+  const rankScore = rank === 0 ? 1.0 : rank === 1 ? 0.7 : 0.4;
 
   const titleLower = result.title.toLowerCase();
   const snippetLower = result.snippet.toLowerCase();
@@ -36,20 +37,24 @@ function calculateWikiScore(
       titleLower.includes(k.toLowerCase()) ||
       snippetLower.includes(k.toLowerCase()),
   ).length;
-  const keywordBonus =
-    Math.min(keywordMatched / Math.max(keywords.length, 1), 1) * 0.2;
+  const keywordScore = Math.min(
+    keywordMatched / Math.max(keywords.length, 1),
+    1,
+  );
 
   const nameMatched = refinementNames.filter(
     (n) =>
       titleLower.includes(n.toLowerCase()) ||
       snippetLower.includes(n.toLowerCase()),
   ).length;
-  const nameBonus =
-    Math.min(nameMatched / Math.max(refinementNames.length, 1), 1) * 0.3;
-
-  return (
-    Math.round(Math.min(rankScore + keywordBonus + nameBonus, 1.0) * 100) / 100
+  const nameScore = Math.min(
+    nameMatched / Math.max(refinementNames.length, 1),
+    1,
   );
+
+  const score = rankScore * 0.6 + keywordScore * 0.2 + nameScore * 0.2;
+
+  return Math.round(score * 100) / 100;
 }
 
 export async function searchWikipedia(
