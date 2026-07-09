@@ -22,6 +22,11 @@ export async function generateOverview(
 
                 If information is missing, write "Unknown".
 
+                IMPORTANT INSTRUCTIONS:
+                - caseInfo contains structured case metadata and corrected entity names.
+                - Prefer caseInfo values over names found in originalText.
+                - originalText may contain transcription errors.
+
                 EVIDENCE:
                 ${JSON.stringify(evidence, null, 2)}
 

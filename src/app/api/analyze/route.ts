@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     console.log("Analyze: resolved:", JSON.stringify(resolved, null, 2));
 
     // Step 6: fetch evidence
-    const evidence = await fetchEvidence(resolved, content.text);
+    const evidence = await fetchEvidence(resolved, extracted, content.text);
 
     // Step 7: generate case overview
     const overview = await generateOverview(evidence);

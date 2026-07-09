@@ -1,6 +1,16 @@
-import { ResolvedCase } from "./types";
+import { ResolvedCase, ExtractedCase } from "./types";
 
 export interface Evidence {
+  caseInfo?: {
+    caseName: string | null;
+    defendant: string | null;
+    victim: string | null;
+    crimeType: string | null;
+    jurisdiction: string | null;
+    state: string | null;
+    approximateYear: string | null;
+  };
+
   originalText?: string;
 
   wikipedia?: {
@@ -31,14 +41,26 @@ function limitText(text: string, maxChars: number): string {
 // Fetch full source documents for the resolved case
 export async function fetchEvidence(
   resolved: ResolvedCase,
+  extracted: ExtractedCase,
   originalText: string,
 ): Promise<Evidence> {
   const selected = resolved.selectedCase;
 
   // Always include original extracted input
   const evidence: Evidence = {
+    caseInfo: {
+      caseName: extracted.caseName,
+      defendant: extracted.defendant,
+      victim: extracted.victim,
+      crimeType: extracted.crimeType,
+      jurisdiction: extracted.jurisdiction,
+      state: extracted.state,
+      approximateYear: extracted.approximateYear,
+    },
     originalText: limitText(originalText, 14000),
   };
+
+  console.log("Evidence caseInfo:", JSON.stringify(evidence.caseInfo, null, 2));
 
   try {
     if (selected.source === "wikipedia" && selected.url) {
