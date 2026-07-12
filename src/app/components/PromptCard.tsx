@@ -1,6 +1,7 @@
 import React from "react";
 import { Menu, Play } from "lucide-react";
 import { CaseAnalysis, CaseOverview } from "@/lib/types";
+import ModelDropdown from "./Dropdown";
 
 function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {
   return (
@@ -76,6 +77,8 @@ interface PromptCardProps {
   onSubmit: () => void;
   loading: boolean;
   analysis: CaseAnalysis | null;
+  model: string;
+  setModel: (model: string) => void;
 }
 
 export default function PromptCard({
@@ -86,6 +89,8 @@ export default function PromptCard({
   onSubmit,
   loading,
   analysis,
+  model,
+  setModel,
 }: PromptCardProps) {
   return (
     <div className="flex min-w-0 grow flex-col transition-all duration-300 ease-in-out">
@@ -115,18 +120,22 @@ export default function PromptCard({
               />
             </section>
 
-            {/* Extract button */}
-            <section className="flex flex-col justify-end">
-              <button
-                onClick={onSubmit}
-                disabled={loading}
-                className="flex h-7 cursor-pointer flex-row items-center gap-2 rounded border border-(--border) bg-(--accent) p-2 text-(--text2) transition-colors duration-300 ease-in-out hover:bg-(--border) hover:text-(--text4)"
-              >
-                <Play size={16} />
-                <span className="whitespace-nowrap">
-                  {loading ? "Processing..." : "Extract URL"}
-                </span>
-              </button>
+            {/* Model selection & Extract button */}
+            <section className="flex flex-col justify-end gap-3">
+              <ModelDropdown model={model} setModel={setModel} />
+
+              <div className="flex flex-row justify-end">
+                <button
+                  onClick={onSubmit}
+                  disabled={loading}
+                  className="flex h-7 w-min cursor-pointer flex-row items-center gap-2 rounded border border-(--border) bg-(--accent) p-2 text-(--text2) transition-colors duration-300 ease-in-out hover:bg-(--border) hover:text-(--text4)"
+                >
+                  <Play size={16} />
+                  <span className="whitespace-nowrap">
+                    {loading ? "Processing..." : "Extract URL"}
+                  </span>
+                </button>
+              </div>
             </section>
           </div>
         </div>

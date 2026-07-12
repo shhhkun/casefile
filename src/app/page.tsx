@@ -17,6 +17,8 @@ export default function Page() {
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
 
+  const [model, setModel] = useState("openai/gpt-oss-120b");
+
   const parseNames = (input: string): string[] => {
     return input
       .split(",")
@@ -35,7 +37,7 @@ export default function Page() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, refinementNames }),
+        body: JSON.stringify({ url, refinementNames, model }),
       });
 
       const data = await res.json();
@@ -68,6 +70,8 @@ export default function Page() {
         onSubmit={handleSubmit}
         loading={loading}
         analysis={analysis}
+        model={model}
+        setModel={setModel}
       />
       <ControlsCard
         isCollapsed={isRightCollapsed}

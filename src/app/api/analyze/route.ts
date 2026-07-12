@@ -13,7 +13,12 @@ export async function POST(req: NextRequest) {
     const {
       url,
       refinementNames = [],
-    }: { url: string; refinementNames: string[] } = await req.json();
+      model,
+    }: {
+      url: string;
+      refinementNames: string[];
+      model: string;
+    } = await req.json();
 
     if (!url) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
@@ -39,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     // Step 2: extract case signals
     console.log("Analyze: extracting case signals");
-    const extracted = await extractCase(content.text);
+    const extracted = await extractCase(content.text, model);
     console.log("Analyze: extracted:", JSON.stringify(extracted, null, 2));
 
     // Step 3: parallel search
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     // Step 5: resolve best match
     console.log("Analyze: resolving case");
-    const resolved = await resolveCase(extracted, allCandidates);
+    const resolved = await resolveCase(extracted, allCandidates, model);
 
     if (!resolved) {
       return NextResponse.json(
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest) {
     const evidence = await fetchEvidence(resolved, extracted, content.text);
 
     // Step 7: generate case overview
-    const overview = await generateOverview(evidence);
+    const overview = await generateOverview(evidence, model);
 
     const analysis: CaseAnalysis = {
       extracted,

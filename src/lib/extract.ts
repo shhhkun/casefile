@@ -5,9 +5,12 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
 });
 
-export async function extractCase(transcript: string): Promise<ExtractedCase> {
+export async function extractCase(
+  transcript: string,
+  model: string,
+): Promise<ExtractedCase> {
   const completion = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
+    model: model ?? "openai/gpt-oss-120b",
     messages: [
       {
         role: "system",

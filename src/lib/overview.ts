@@ -15,6 +15,7 @@ export interface CaseOverview {
 
 export async function generateOverview(
   evidence: Evidence,
+  model: string,
 ): Promise<CaseOverview> {
   const prompt = `You are a legal case summarizer.
 
@@ -46,7 +47,7 @@ export async function generateOverview(
                 `;
 
   const res = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
+    model: model ?? "openai/gpt-oss-120b",
     temperature: 0.2,
     messages: [
       {

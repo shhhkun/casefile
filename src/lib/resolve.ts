@@ -8,6 +8,7 @@ const groq = new Groq({
 export async function resolveCase(
   extracted: ExtractedCase,
   candidates: ScoredCandidate[],
+  model: string,
 ): Promise<ResolvedCase | null> {
   if (candidates.length === 0) return null;
 
@@ -47,7 +48,7 @@ export async function resolveCase(
                   reasoning is a brief explanation of why this candidate was selected.`;
 
   const completion = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
+    model: model ?? "openai/gpt-oss-120b",
     messages: [
       {
         role: "system",
