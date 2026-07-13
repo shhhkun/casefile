@@ -1,4 +1,3 @@
-import React from "react";
 import { PanelRight } from "lucide-react";
 
 interface ControlsProps {
