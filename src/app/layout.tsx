@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full ${inter.variable} ${merriweather.variable} ${spaceMono.variable} ${archivo.variable}`}
+      className={`h-full ${spaceMono.variable} ${archivo.variable} ${inter.variable} ${merriweather.variable}`}
     >
       <body className="flex h-full flex-col">
         <Home>{children}</Home>

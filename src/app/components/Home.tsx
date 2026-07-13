@@ -14,6 +14,11 @@ export default function Home({ children }: { children: ReactNode }) {
     return "dark";
   });
 
+  useEffect(() => {
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
+  }, [theme]);
+
   return (
     <div className="relative h-dvh overflow-hidden bg-(--bg)">
       <div className="fixed top-0 left-0 flex h-18 w-full items-center justify-end px-6">
