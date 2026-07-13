@@ -106,7 +106,7 @@ export default function SourceCard({
         )}
         <button
           onClick={onToggle}
-          className="cursor-pointer rounded p-1 transition-colors duration-200 hover:bg-(--bg2)"
+          className="-m-3 cursor-pointer rounded-full p-3 transition-colors duration-200 hover:bg-(--bg2)"
         >
           <PanelLeft />
         </button>
