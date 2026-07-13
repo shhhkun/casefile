@@ -3,17 +3,17 @@ import { ChevronDown } from "lucide-react";
 
 const models = [
   {
-    label: "GPT OSS 120B",
+    label: "GPT-OSS-120B",
     desc: "Highest Capability",
     value: "openai/gpt-oss-120b",
   },
   {
-    label: "Llama 3.3 70B",
+    label: "Llama-3.3-70B",
     desc: "Balanced Performance",
     value: "llama-3.3-70b-versatile",
   },
   {
-    label: "Llama 3.1 8B",
+    label: "Llama-3.1-8B",
     desc: "Fast Response",
     value: "llama-3.1-8b-instant",
   },
@@ -35,7 +35,7 @@ export default function ModelDropdown({
       {/* Dropdown button */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-7 min-w-44 cursor-pointer items-center justify-between gap-2 rounded border border-(--border) bg-(--accent) px-2 text-(--text2) transition-colors duration-300 ease-in-out hover:bg-(--border) hover:text-(--text4)"
+        className="flex h-7 cursor-pointer items-center justify-between gap-2 rounded border border-(--border) bg-(--accent) px-2 whitespace-nowrap text-(--text2) transition-colors duration-300 ease-in-out hover:bg-(--border) hover:text-(--text4)"
       >
         <span>{selectedModel.label}</span>
         <ChevronDown size={16} />
