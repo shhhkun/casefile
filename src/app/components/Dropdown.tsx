@@ -35,7 +35,7 @@ export default function ModelDropdown({
       {/* Dropdown button */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-7 min-w-36 cursor-pointer items-center justify-between gap-2 rounded border border-(--border) bg-(--accent) px-2 text-(--text2) transition-colors duration-300 ease-in-out hover:bg-(--border) hover:text-(--text4)"
+        className="flex h-7 min-w-44 cursor-pointer items-center justify-between gap-2 rounded border border-(--border) bg-(--accent) px-2 text-(--text2) transition-colors duration-300 ease-in-out hover:bg-(--border) hover:text-(--text4)"
       >
         <span>{selectedModel.label}</span>
         <ChevronDown size={16} />
