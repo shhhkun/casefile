@@ -61,7 +61,13 @@ export async function generateOverview(
     ],
   });
 
-  const text = res.choices[0].message.content ?? "";
+  let text = res.choices[0].message.content ?? "";
+
+  // Remove any markdown json wrapping
+  text = text
+    .trim()
+    .replace(/^```(?:json)?\s*/, "")
+    .replace(/\s*```$/, "");
 
   return JSON.parse(text);
 }
