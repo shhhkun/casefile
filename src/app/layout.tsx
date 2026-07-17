@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, Merriweather, Archivo, Space_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import Home from "./components/Home";
 
@@ -44,6 +45,7 @@ export default function RootLayout({
       className={`h-full ${spaceMono.variable} ${archivo.variable} ${inter.variable} ${merriweather.variable}`}
     >
       <body className="flex h-full flex-col">
+        <Analytics />
         <Home>{children}</Home>
       </body>
     </html>
