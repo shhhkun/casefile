@@ -36,8 +36,8 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
 
               <hr className="border-t-2 border-(--line)" />
 
-              <div className="flex w-full rounded-lg border-2 border-(--border) bg-(--bg) p-4 text-sm">
-                <p>
+              <div className="flex max-h-40 w-full overflow-hidden rounded-lg border-2 border-(--border) bg-(--bg) text-sm">
+                <p className="overflow-y-scroll p-4">
                   - Extract full legal names including middle names where
                   available (e.g. &quot;Hadden Irving Clark&quot; not
                   &quot;Hadden Clark&quot;)
