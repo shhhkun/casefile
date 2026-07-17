@@ -62,7 +62,7 @@ export default function ControlsCard({ isCollapsed, onToggle }: ControlsProps) {
               <div className="bg(--bg2) w-full overflow-hidden rounded-lg border-2 border-(--border)">
                 <textarea
                   placeholder="Add context to refine the case analysis..."
-                  className="block min-h-40 w-full resize-none bg-(--accent) p-4 text-sm placeholder-(--text)/50 focus:outline-none"
+                  className="optional-selection block min-h-40 w-full resize-none bg-(--accent) p-4 text-sm placeholder-(--text)/50 focus:outline-none"
                 />
               </div>
             </section>

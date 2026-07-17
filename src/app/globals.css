@@ -76,3 +76,8 @@ h1 {
   background: var(--accent);
   color: var(--text5);
 }
+
+.optional-selection::selection {
+  background: var(--bg2);
+  color: var(--text);
+}
