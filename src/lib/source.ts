@@ -1,6 +1,7 @@
 import { ExtractedContent } from "./types";
 
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
+//const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
+const BASE_URL = "https://casefile-demo.vercel.app";
 
 export function isYoutubeUrl(url: string): boolean {
   try {
