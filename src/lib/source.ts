@@ -1,11 +1,11 @@
 import { ExtractedContent } from "./types";
-
-//const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
-const BASE_URL = "https://casefile-demo.vercel.app";
+import { extractArticle } from "./article";
+import { extractTranscript } from "./transcript";
 
 export function isYoutubeUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
+
     return (
       parsed.hostname === "www.youtube.com" ||
       parsed.hostname === "youtube.com" ||
@@ -21,46 +21,31 @@ export async function sourceContent(url: string): Promise<ExtractedContent> {
   console.log("Source extracted: URL:", url);
 
   if (isYoutubeUrl(url)) {
-    console.log("Source extracted: routing to /api/transcript");
+    console.log("Source extracted: routing to transcript extractor");
 
-    const res = await fetch(`${BASE_URL}/api/transcript`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
+    const transcript = await extractTranscript(url);
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error ?? "Transcript extraction failed");
-    }
+    console.log("Source extracted: transcript length:", transcript.length);
 
-    const data = await res.json();
     return {
       sourceType: "youtube",
       title: null,
-      text: data.transcript,
+      text: transcript,
       url,
     };
   }
 
-  console.log("Source extracted: routing to /api/article");
+  console.log("Source extracted: routing to article extractor");
 
-  const res = await fetch(`${BASE_URL}/api/article`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  });
+  const article = await extractArticle(url);
 
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error ?? "Article extraction failed");
-  }
+  console.log("Source extracted: article title:", article.title);
+  console.log("Source extracted: article text length:", article.text.length);
 
-  const data = await res.json();
   return {
     sourceType: "article",
-    title: data.title,
-    text: data.text,
+    title: article.title ?? null,
+    text: article.text,
     url,
   };
 }
