@@ -10,6 +10,8 @@ import { generateOverview } from "@/lib/overview";
 
 export async function POST(req: NextRequest) {
   try {
+    const analyzeStart = performance.now();
+
     const {
       url,
       refinementNames = [],
@@ -26,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     console.log("Analyze: refinement names:", refinementNames);
 
+    const sourceStart = performance.now();
     // Step 1: source content from URL (YouTube or article)
     console.log("Analyze: extracting content from URL");
     let content;
@@ -38,21 +41,26 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
+    const sourceTime = performance.now() - sourceStart;
 
     console.log("Analyze: source type:", content.sourceType);
     console.log("Analyze: content length:", content.text.length);
 
+    const extractStart = performance.now();
     // Step 2: extract case signals
-    console.log("Analyze: extracting case signals");
     const extracted = await extractCase(content.text, model);
+    const extractTime = performance.now() - extractStart;
+
     console.log("Analyze: extracted:", JSON.stringify(extracted, null, 2));
 
+    const searchStart = performance.now();
     // Step 3: parallel search
     console.log("Analyze: running parallel search");
     const [courtResults, wikiResult] = await Promise.all([
       searchCourtListener(extracted, refinementNames),
       searchWikipedia(extracted, refinementNames),
     ]);
+    const searchTime = performance.now() - searchStart;
 
     console.log("Analyze: court candidates:", courtResults.length);
     console.log("Analyze: wiki candidates:", wikiResult.candidates.length);
@@ -63,9 +71,11 @@ export async function POST(req: NextRequest) {
 
     console.log("Analyze: total candidates:", allCandidates.length);
 
+    const resolveStart = performance.now();
     // Step 5: resolve best match
     console.log("Analyze: resolving case");
     const resolved = await resolveCase(extracted, allCandidates, model);
+    const resolveTime = performance.now() - resolveStart;
 
     if (!resolved) {
       return NextResponse.json(
@@ -80,7 +90,9 @@ export async function POST(req: NextRequest) {
     const evidence = await fetchEvidence(resolved, extracted, content.text);
 
     // Step 7: generate case overview
+    const overviewStart = performance.now();
     const overview = await generateOverview(evidence, model);
+    const overviewTime = performance.now() - overviewStart;
 
     const analysis: CaseAnalysis = {
       extracted,
@@ -95,6 +107,17 @@ export async function POST(req: NextRequest) {
       sourceTitle: content.title,
       overview,
     };
+
+    const analyzeEnd = performance.now();
+
+    console.log(`Source completed in ${sourceTime.toFixed(0)} ms`);
+    console.log(`Extract completed in ${extractTime.toFixed(0)} ms`);
+    console.log(`Search completed in ${searchTime.toFixed(0)} ms`);
+    console.log(`Resolve completed in ${resolveTime.toFixed(0)} ms`);
+    console.log(`Overview completed in ${overviewTime.toFixed(0)} ms`);
+    console.log(
+      `Analyze (API) completed in ${(analyzeEnd - analyzeStart).toFixed(0)} ms`,
+    );
 
     return NextResponse.json(analysis);
   } catch (error) {
