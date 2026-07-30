@@ -59,3 +59,22 @@ export interface CaseOverview {
     answer: string;
   }[];
 }
+
+// Redis cache-specific
+
+export interface CachedCourtListenerResult {
+  id: string;
+  caseName: string;
+  court: string;
+  dateFiled: string;
+  absolute_url: string;
+  snippet: string;
+  score: number;
+}
+
+export interface CachedWikiResult {
+  candidates: ScoredCandidate[];
+  summary: string | null;
+  url: string | null;
+  thumbnail: string | null;
+}

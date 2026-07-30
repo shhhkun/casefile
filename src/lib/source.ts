@@ -1,6 +1,8 @@
 import { ExtractedContent } from "./types";
 import { extractArticle } from "./article";
 import { extractTranscript } from "./transcript";
+import { redis } from "./redis";
+import { CACHE_TTL } from "./cache";
 
 export function isYoutubeUrl(url: string): boolean {
   try {
@@ -20,6 +22,14 @@ export function isYoutubeUrl(url: string): boolean {
 export async function sourceContent(url: string): Promise<ExtractedContent> {
   console.log("Source extracted: URL:", url);
 
+  const key = `source:${url}`;
+  const cached = await redis.get<ExtractedContent>(key);
+  let result: ExtractedContent;
+  if (cached) {
+    console.log("Source cache HIT");
+    return cached;
+  }
+
   if (isYoutubeUrl(url)) {
     console.log("Source extracted: routing to transcript extractor");
 
@@ -27,12 +37,16 @@ export async function sourceContent(url: string): Promise<ExtractedContent> {
 
     console.log("Source extracted: transcript length:", transcript.length);
 
-    return {
+    result = {
       sourceType: "youtube",
       title: null,
       text: transcript,
       url,
     };
+
+    await redis.set(key, result, { ex: CACHE_TTL.source });
+    console.log("Source cache MISS");
+    return result;
   }
 
   console.log("Source extracted: routing to article extractor");
@@ -42,10 +56,15 @@ export async function sourceContent(url: string): Promise<ExtractedContent> {
   console.log("Source extracted: article title:", article.title);
   console.log("Source extracted: article text length:", article.text.length);
 
-  return {
+  result = {
     sourceType: "article",
     title: article.title ?? null,
     text: article.text,
     url,
   };
+
+  await redis.set(key, result, { ex: CACHE_TTL.source });
+  console.log("Source cache MISS");
+
+  return result;
 }

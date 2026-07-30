@@ -1,5 +1,8 @@
-import { ExtractedCase, ScoredCandidate } from "./types";
+import { ExtractedCase, ScoredCandidate, CachedWikiResult } from "./types";
 import { generateWikiQuery } from "./queries";
+import { hashKey } from "./hash";
+import { redis } from "./redis";
+import { CACHE_TTL } from "./cache";
 
 interface WikiSearchResult {
   title: string;
@@ -11,13 +14,6 @@ interface WikiSummary {
   extract: string;
   content_urls?: { desktop?: { page?: string } };
   thumbnail?: { source?: string };
-}
-
-export interface WikiResult {
-  candidates: ScoredCandidate[];
-  summary: string | null;
-  url: string | null;
-  thumbnail: string | null;
 }
 
 function calculateWikiScore(
@@ -60,9 +56,16 @@ function calculateWikiScore(
 export async function searchWikipedia(
   extracted: ExtractedCase,
   refinementNames: string[] = [],
-): Promise<WikiResult> {
+): Promise<CachedWikiResult> {
   const query = generateWikiQuery(extracted, refinementNames);
   console.log("Wikipedia query:", query);
+
+  const key = `wikipedia${hashKey(query)}`;
+  const cached = await redis.get<CachedWikiResult>(key);
+  if (cached) {
+    console.log("Search (Wikipedia) HIT");
+    return cached;
+  }
 
   const searchParams = new URLSearchParams({
     action: "query",
@@ -116,12 +119,17 @@ export async function searchWikipedia(
 
     const summaryData: WikiSummary = await summaryRes.json();
 
-    return {
+    const result = {
       candidates,
       summary: summaryData.extract ?? null,
       url: summaryData.content_urls?.desktop?.page ?? null,
       thumbnail: summaryData.thumbnail?.source ?? null,
     };
+
+    await redis.set(key, result, { ex: CACHE_TTL.search });
+    console.log("Search (Wikipedia) cache MISS");
+
+    return result;
   } catch (err) {
     console.error("Wikipedia summary fetch failed:", err);
     return { candidates, summary: null, url: null, thumbnail: null };

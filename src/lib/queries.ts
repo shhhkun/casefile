@@ -161,11 +161,6 @@ export function generateWikiQuery(
 ): string {
   const parts: string[] = [];
 
-  // const { defendant, victim, remainingNames } = applyRefinements(
-  //   extracted,
-  //   refinementNames,
-  // );
-
   const remainingNames = applyExtractedWithRefinements(
     extracted,
     refinementNames,

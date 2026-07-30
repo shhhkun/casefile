@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
 import { ExtractedCase, ScoredCandidate, ResolvedCase } from "./types";
+import { redis } from "./redis";
+import { CACHE_TTL } from "./cache";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -9,7 +11,15 @@ export async function resolveCase(
   extracted: ExtractedCase,
   candidates: ScoredCandidate[],
   model: string,
+  url: string,
 ): Promise<ResolvedCase | null> {
+  const key = `resolve:${url}`;
+  const cached = await redis.get<ResolvedCase>(key);
+  if (cached) {
+    console.log("Resolve cache HIT");
+    return cached;
+  }
+
   if (candidates.length === 0) return null;
 
   // Take top 3 candidates by score
@@ -49,6 +59,7 @@ export async function resolveCase(
 
   const completion = await groq.chat.completions.create({
     model: model ?? "openai/gpt-oss-120b",
+    temperature: 0.1,
     messages: [
       {
         role: "system",
@@ -57,7 +68,6 @@ export async function resolveCase(
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0.1,
   });
 
   const text = completion.choices[0].message.content?.trim() ?? "";
@@ -71,11 +81,16 @@ export async function resolveCase(
 
     const selected = top[result.selectedIndex] ?? top[0];
 
-    return {
+    const topResult = {
       selectedCase: selected,
       confidence: result.confidence,
       reasoning: result.reasoning,
     };
+
+    await redis.set(key, topResult, { ex: CACHE_TTL.resolve });
+    console.log("Resolve cache MISS");
+
+    return topResult;
   } catch {
     console.error("Resolve: failed to parse LLM response:", text);
     // Fall back to highest scored candidate

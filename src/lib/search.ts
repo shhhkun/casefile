@@ -1,5 +1,12 @@
-import { ExtractedCase, ScoredCandidate } from "./types";
+import {
+  ExtractedCase,
+  ScoredCandidate,
+  CachedCourtListenerResult,
+} from "./types";
 import { generateQueries } from "./queries";
+import { hashKey } from "./hash";
+import { redis } from "./redis";
+import { CACHE_TTL } from "./cache";
 
 interface CourtListenerResult {
   id: string;
@@ -41,21 +48,45 @@ export async function searchCourtListener(
     });
 
     try {
-      const response = await fetch(
-        `https://www.courtlistener.com/api/rest/v4/search/?${params}`,
-        { headers: { Accept: "application/json" } },
-      );
+      const key = `courtlistener:${hashKey(query)}`;
+      let results: CachedCourtListenerResult[];
+      const cachedResults = await redis.get<CachedCourtListenerResult[]>(key);
 
-      if (!response.ok) continue;
+      if (cachedResults) {
+        results = cachedResults;
+        console.log("Search (CourtListener) HIT");
+      } else {
+        const response = await fetch(
+          `https://www.courtlistener.com/api/rest/v4/search/?${params}`,
+          { headers: { Accept: "application/json" } },
+        );
 
-      const data = await response.json();
-      const results: CourtListenerResult[] = data.results ?? [];
+        if (!response.ok) continue;
 
-      console.log(
-        `CourtListener tier ${i}: "${query}" → ${results.length} results`,
-      );
+        const data = await response.json();
+        //const results: CourtListenerResult[] = data.results ?? [];
 
-      for (const r of results.slice(0, 3)) {
+        results = (data.results ?? [])
+          .slice(0, 3)
+          .map((r: CourtListenerResult) => ({
+            id: r.id,
+            caseName: r.caseName,
+            court: r.court,
+            dateFiled: r.dateFiled,
+            absolute_url: r.absolute_url,
+            snippet: r.snippet,
+            score: r.score,
+          }));
+
+        await redis.set(key, results, { ex: CACHE_TTL.search });
+        console.log("Search (CourtListener) cache MISS");
+
+        console.log(
+          `CourtListener tier ${i}: "${query}" → ${results.length} results`,
+        );
+      }
+
+      for (const r of results) {
         if (seenIds.has(r.id)) continue;
         seenIds.add(r.id);
 

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     const extractStart = performance.now();
     // Step 2: extract case signals
-    const extracted = await extractCase(content.text, model);
+    const extracted = await extractCase(content.text, model, url);
     const extractTime = performance.now() - extractStart;
 
     console.log("Analyze: extracted:", JSON.stringify(extracted, null, 2));
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     const resolveStart = performance.now();
     // Step 5: resolve best match
     console.log("Analyze: resolving case");
-    const resolved = await resolveCase(extracted, allCandidates, model);
+    const resolved = await resolveCase(extracted, allCandidates, model, url);
     const resolveTime = performance.now() - resolveStart;
 
     if (!resolved) {
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     // Step 7: generate case overview
     const overviewStart = performance.now();
-    const overview = await generateOverview(evidence, model);
+    const overview = await generateOverview(evidence, model, url);
     const overviewTime = performance.now() - overviewStart;
 
     const analysis: CaseAnalysis = {

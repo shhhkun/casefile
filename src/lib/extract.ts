@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
 import { ExtractedCase } from "./types";
+import { redis } from "./redis";
+import { CACHE_TTL } from "./cache";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -8,18 +10,16 @@ const groq = new Groq({
 export async function extractCase(
   transcript: string,
   model: string,
+  url: string,
 ): Promise<ExtractedCase> {
-  const completion = await groq.chat.completions.create({
-    model: model ?? "openai/gpt-oss-120b",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a legal case identifier. Return ONLY valid JSON with no markdown, no code blocks, no explanation.",
-      },
-      {
-        role: "user",
-        content: `Analyze this text and extract structured information about the primary criminal case being described.
+  const key = `extract:${url}`;
+  const cached = await redis.get<ExtractedCase>(key);
+  if (cached) {
+    console.log("Extract cache HIT");
+    return cached;
+  }
+
+  const prompt = `Analyze this text and extract structured information about the primary criminal case being described.
 
                   IMPORTANT INSTRUCTIONS:
                   - Extract full legal names including middle names where available (e.g. "Hadden Irving Clark" not "Hadden Clark")
@@ -41,18 +41,34 @@ export async function extractCase(
                   }
 
                   Text:
-                  ${transcript.slice(0, 12000)}`,
+                  ${transcript.slice(0, 12000)}`;
+
+  const completion = await groq.chat.completions.create({
+    model: model ?? "openai/gpt-oss-120b",
+    temperature: 0.1,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a legal case identifier. Return ONLY valid JSON with no markdown, no code blocks, no explanation.",
+      },
+      {
+        role: "user",
+        content: prompt,
       },
     ],
-    temperature: 0.1,
   });
 
-  const text = completion.choices[0].message.content?.trim() ?? "";
+  const text = (completion.choices[0].message.content ?? "").trim();
   console.log("Extract: raw response:", text);
 
   try {
     const parsed = JSON.parse(text) as ExtractedCase;
     console.log("Extract: parsed:", JSON.stringify(parsed, null, 2));
+
+    await redis.set(key, parsed, { ex: CACHE_TTL.extract });
+    console.log("Extract cache MISS");
+
     return parsed;
   } catch {
     throw new Error(`Failed to parse extraction response: ${text}`);
