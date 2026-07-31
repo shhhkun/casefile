@@ -6,33 +6,35 @@ Analyze legal content from online sources and transform it into structured case 
 
 ## Features
 
-- **AI-Powered Case Analysis:** Extracts relevant legal information from articles and YouTube videos to identify potential cases and generate structured overviews.
+- **AI-Powered Case Analysis:** Extracts relevant legal information from articles or YouTube videos to identify potential cases and generate structured overviews.
 
 - **Multi-Source Retrieval:** Searches external sources such as CourtListener and Wikipedia to gather supporting information and improve case identification.
 
-- **Pipeline-Based Processing:** Uses a multi-stage workflow to extract metadata, rank potential matches, and generate final case summaries.
+- **Pipeline-Based Processing:** Uses a multi-stage workflow to extract metadata, rank potential matches, and generate final case summary.
 
 - **External API Integration:** Connects multiple APIs and services into a unified analysis workflow.
 
 ## Some Technologies Used
 
-- **Groq API:** Used for LLM-powered information extraction, case resolution, and structured summary generation.
+- **Groq API (GPT-OSS-120B):** Used for LLM-powered information extraction, case resolution, and structured summary generation.
 
 - **CourtListener API:** Used to retrieve legal opinions and case records.
 
 - **Wikipedia API:** Used to gather additional case and involved-party context.
 
-- **Next.js / TypeScript:** Used to build the full-stack web application and workflow.
+- **Redis (Upstash):** Used for caching repeated analyses, reducing redundant LLM inference and external API requests through TTL-based cache expiration.
+
+- **Next.js / TypeScript:** Used to build the full-stack application and workflow.
 
 ## Pipeline Design
 
-CaseFile uses a multi-stage processing pipeline to transform unstructured online content into structured legal case analysis.
+CaseFile uses the following processing pipeline to transform unstructured online content into structured legal case overviews.
 
 1. **Content Extraction**
    - Extracts text from supported sources such as YouTube videos and online articles.
 
 2. **Metadata Extraction**
-   - Uses LLM-powered processing to identify relevant case information and generate structured metadata from extracted content.
+   - Uses LLM to identify relevant case information and generate structured metadata from extracted content.
 
 3. **Case Retrieval**
    - Searches external legal and public sources, including CourtListener and Wikipedia, to find relevant case records and supporting context.
