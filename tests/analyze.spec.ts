@@ -57,4 +57,44 @@ test.describe("Analyze workflow", () => {
       page.getByText("Wikipedia").or(page.getByText("CourtListener")).first(),
     ).toBeVisible({ timeout: 90000 });
   });
+
+  // TEST 3
+  test("empty URL", async ({ page }) => {
+    await page.goto("/");
+
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/analyze") &&
+        response.request().method() === "POST",
+    );
+
+    // leave URL blank and check response path & method: POST
+    await page.getByRole("button", { name: /Extract URL/ }).click();
+
+    const response = await responsePromise;
+
+    expect(response.status()).toBe(400);
+  });
+
+  // TEST 4
+  test("malformed URL", async ({ page }) => {
+    await page.goto("/");
+
+    const input = page.getByPlaceholder("Enter a source URL...");
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/analyze") &&
+        response.request().method() === "POST",
+    );
+
+    // make URL malformed and check response path & method: POST
+    await input.click();
+    await input.pressSequentially("not a real URL");
+
+    await page.getByRole("button", { name: /Extract URL/ }).click();
+
+    const response = await responsePromise;
+
+    expect(response.status()).toBe(500);
+  });
 });
