@@ -12,7 +12,6 @@ export default function Page() {
   const [namesInput, setNamesInput] = useState("");
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
@@ -28,7 +27,6 @@ export default function Page() {
 
   const handleSubmit = async () => {
     setLoading(true);
-    setError("");
     setAnalysis(null);
 
     const refinementNames = parseNames(namesInput);
@@ -42,14 +40,7 @@ export default function Page() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
-        return;
-      }
-
       setAnalysis(data);
-    } catch {
-      setError("Something went wrong");
     } finally {
       setLoading(false);
     }
