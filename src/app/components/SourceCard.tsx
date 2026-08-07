@@ -115,7 +115,7 @@ export default function SourceCard({
       <div className="flex h-full rounded-b-2xl border-x-2 border-b-2 border-(--border) bg-(--bg2) p-6">
         <section className="flex w-full flex-col gap-4">
           {!isCollapsed &&
-            analysis?.candidates.map((c, i) => (
+            analysis?.candidates?.map((c, i) => (
               <Source key={i} candidate={c} />
             ))}
         </section>

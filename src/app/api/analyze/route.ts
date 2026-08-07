@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { SourceError } from "@/lib/errors";
 import { sourceContent } from "@/lib/source";
 import { extractCase } from "@/lib/extract";
 import { searchCourtListener } from "@/lib/search";
@@ -36,6 +37,12 @@ export async function POST(req: NextRequest) {
       content = await sourceContent(url);
     } catch (err) {
       console.error("Analyze: content extraction failed:", err);
+      if (err instanceof SourceError) {
+        return NextResponse.json(
+          { error: err.message },
+          { status: err.statusCode },
+        );
+      }
       return NextResponse.json(
         { error: "Failed to extract content from URL" },
         { status: 500 },

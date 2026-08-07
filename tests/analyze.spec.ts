@@ -74,6 +74,9 @@ test.describe("Analyze workflow", () => {
     const response = await responsePromise;
 
     expect(response.status()).toBe(400);
+
+    // expect error toast to appear
+    await expect(page.getByTestId("toast")).toBeVisible();
   });
 
   // TEST 4
@@ -95,6 +98,9 @@ test.describe("Analyze workflow", () => {
 
     const response = await responsePromise;
 
-    expect(response.status()).toBe(500);
+    expect(response.status()).toBe(400);
+
+    // expect error toast to appear
+    await expect(page.getByTestId("toast")).toBeVisible();
   });
 });
