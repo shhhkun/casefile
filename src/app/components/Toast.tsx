@@ -33,6 +33,7 @@ export default function Toast({
     <div className="pointer-events-none fixed top-20 left-1/2 z-50 -translate-x-1/2">
       <div
         role="alert"
+        data-testid="toast"
         className="pointer-events-auto flex items-center gap-3 rounded-lg border-2 border-(--border) bg-(--bg2) px-4 py-3 shadow-lg"
       >
         <span className="text-(--accent)">{ICONS[type]}</span>
