@@ -6,12 +6,14 @@ import { CaseAnalysis } from "@/lib/types";
 import SourceCard from "./components/SourceCard";
 import ControlsCard from "./components/ControlsCard";
 import PromptCard from "./components/PromptCard";
+import Toast from "./components/Toast";
 
 export default function Page() {
   const [url, setUrl] = useState("");
   const [namesInput, setNamesInput] = useState("");
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
@@ -28,6 +30,7 @@ export default function Page() {
   const handleSubmit = async () => {
     setLoading(true);
     setAnalysis(null);
+    setError(null);
 
     const refinementNames = parseNames(namesInput);
 
@@ -40,7 +43,14 @@ export default function Page() {
 
       const data = await res.json();
 
+      if (!res.ok) {
+        setError(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+
       setAnalysis(data);
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -48,6 +58,7 @@ export default function Page() {
 
   return (
     <div className="flex h-full flex-row gap-6 px-6 pb-6">
+      {error && <Toast message={error} onClose={() => setError(null)} />}
       <SourceCard
         analysis={analysis}
         isCollapsed={isLeftCollapsed}
