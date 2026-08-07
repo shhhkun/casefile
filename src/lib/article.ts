@@ -1,19 +1,30 @@
 import * as cheerio from "cheerio";
+import { SourceError } from "./errors";
 
 export async function extractArticle(url: string) {
   console.log("Article: fetching URL:", url);
 
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+    });
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new SourceError("Invalid URL.", 400);
+    }
+    throw err;
+  }
 
   if (!response.ok) {
-    throw new Error(
+    throw new SourceError(
       `Failed to fetch URL: ${response.status} ${response.statusText}`,
+      400,
     );
   }
 
