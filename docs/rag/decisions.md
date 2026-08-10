@@ -53,12 +53,17 @@ CaseFile uses a **shared, persistent-but-expiring knowledge base** for RAG. This
 
 ### 2.4 Implementation Status
 
-The first RAG storage/retrieval integration is **implemented** on the `feat/rag` branch as real CaseFile code under `src/lib/rag/` (types, db, chunk, embed, ingest, retrieve, cleanup, index), with a pgvector migration (`supabase/migrations/0001_rag_init.sql`) and a development entry point (`scripts/rag-demo.ts`). It is **not yet wired into `/api/analyze`** — that remains a separate integration step.
+The RAG storage/retrieval layer is **implemented** as real CaseFile code under `src/lib/rag/` (types, db, chunk, embed, ingest, retrieve, cleanup, index), with a pgvector migration (`supabase/migrations/0001_rag_init.sql`) and a development entry point (`scripts/rag-demo.ts`).
 
-Implementation verification (run locally):
+**Integration into `/api/analyze`:** RAG is now wired into the Evidence Assembly stage (`src/lib/evidence.ts`). The #1 CourtListener and #1 Wikipedia search results are preserved as pipeline metadata (`SearchContext`) in `src/app/api/analyze/route.ts` and passed to `fetchEvidence`, which ingests them through the existing `ingestSource` layer and retrieves relevant chunks via `retrieveChunks`. Retrieved chunks are added to the `Evidence` object as `ragChunks`, making them available to the overview-generation stage without modifying its prompt or model.
 
+Implementation verification:
+
+- `npm run typecheck` — passes (no type errors).
+- `npm run lint` — passes (no lint errors).
 - `npm run db:migrate` — applies the pgvector schema + HNSW index to Supabase (verified).
 - `npm run rag:demo` — proves the full path: chunking → local embedding → Supabase persistence → pgvector retrieval (cross-source + current-source) → dedup/reuse (verified).
+- E2E tests (`npm test`) — error-path tests pass; full-pipeline tests require external API access (Groq, CourtListener, Wikipedia) and timeout in environments without valid API keys.
 
 **Implementation deviation discovered during work:** the `DATABASE_URL` / `DIRECT_URL` values in `.env.local` contained an unencoded `@` inside the password, which broke pg connection-string parsing. The password is now URL-encoded (`%2Ftx%21hmjL%40Y_ia9X`) in both connection strings. The actual Supabase password was **not** changed.
 
@@ -208,7 +213,7 @@ Use **token-based chunking as the initial baseline**, approximately 512–1024 t
 
 - `extractCase` truncates source text to the first 12,000 chars.
 - `fetchEvidence` truncates `originalText` to 14,000 chars using head (60%) + tail (40%) — the middle is dropped entirely.
-- The RAG module (`src/lib/rag/chunk.ts`) implements token-based chunking with overlap (`chunkText`), used by `ingestSource`. It is not yet wired into the `/api/analyze` pipeline.
+- The RAG module (`src/lib/rag/chunk.ts`) implements token-based chunking with overlap (`chunkText`), used by `ingestSource`. It is now wired into the `/api/analyze` pipeline via Evidence Assembly (see §12).
 
 ### 5.3 Open Sub-Decisions (see §10)
 
@@ -364,3 +369,35 @@ These are the genuinely unresolved items that require experimentation:
 | Free-to-operate               | No mandatory paid API or infrastructure                                                                  |
 
 These decisions keep CaseFile free to operate, align with its existing stateless architecture, maintain a clear separation between caching and RAG storage, and are proportional to its current scale.
+
+---
+
+## 12. Decision: RAG Integration — Evidence Assembly Containment
+
+### 12.1 The Decision
+
+RAG ingestion and retrieval are **contained entirely within the Evidence Assembly stage** (`src/lib/evidence.ts`). No RAG logic is introduced into metadata extraction, candidate resolution, or any earlier LLM stage.
+
+### 12.2 Rationale
+
+- **Minimal pipeline disruption:** The existing CaseFile pipeline (Source Extraction → Metadata Extraction → Search → Resolution → Evidence Assembly → Overview) remains conceptually unchanged. The only pipeline-level adjustment is preserving the #1 CourtListener and #1 Wikipedia search results as `SearchContext` metadata for Evidence Assembly.
+- **No redesign of candidate resolution:** The resolver continues choosing the resolved case exactly as it currently does. Search results are preserved as metadata, not used to alter resolution.
+- **No ingestion of the user's original URL:** The user's original source is not ingested into the RAG knowledge base. Instead, the top search results (CourtListener snippet + Wikipedia summary) are ingested as external corroborating sources.
+- **Additive and non-fatal:** RAG retrieval augments the `Evidence` object with `ragChunks` but does not replace existing evidence. If RAG fails (database unavailable, embedding model fails to load), normal evidence assembly still succeeds.
+- **No overview-generation changes:** The `ragChunks` field is included in the `Evidence` object, which is already serialized into the overview prompt via `JSON.stringify(evidence)`. The overview-generation prompt and model are not modified.
+
+### 12.3 Implementation Details
+
+- **`SearchContext` type** (`src/lib/evidence.ts`): Captures the #1 CourtListener result (`title`, `url`, `snippet`, `court`, `dateFiled`) and #1 Wikipedia result (`title`, `url`, `summary`) from the search stage.
+- **Route wiring** (`src/app/api/analyze/route.ts`): After search and resolution, the #1 results are extracted from `courtResults[0]` and `wikiResult.candidates[0]` + `wikiResult.summary`, assembled into a `SearchContext`, and passed to `fetchEvidence`.
+- **Ingest** (`src/lib/evidence.ts`): The top CourtListener snippet and top Wikipedia summary are ingested via the existing `ingestSource` function. At most 2 external sources are ingested per analysis. The existing URL deduplication and TTL behavior is reused.
+- **Retrieve** (`src/lib/evidence.ts`): A retrieval query is built from the extracted case signals (caseName, defendant, victim, crimeType, jurisdiction, state, approximateYear, keywords). The existing `retrieveChunks` function is called with `topK: 5` to retrieve relevant chunks from the knowledge base.
+- **Non-fatal error handling:** Both ingestion and retrieval are wrapped in try/catch blocks. Per-source ingestion errors are caught individually; overall RAG errors are caught at the block level. The `ragChunks` field is left empty if RAG fails.
+
+### 12.4 Deviation from Originally Intended Flow
+
+The originally intended flow (architecture.md §2.10) planned RAG ingestion immediately after Source Extraction (Stage 2), ingesting the user's original source URL. The implemented design instead:
+
+1. Defers all RAG logic to Evidence Assembly (Stage 5).
+2. Ingests the top search results (not the user's original URL) as RAG sources.
+3. Preserves search results as pipeline metadata (`SearchContext`) without altering candidate resolution.

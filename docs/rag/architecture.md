@@ -257,7 +257,7 @@ Key design points:
 
 ### 2.7 Implemented RAG Modules
 
-The RAG storage/retrieval layer is implemented as real production-oriented CaseFile code under `src/lib/rag/` (established on this branch, **not integrated into `/api/analyze` yet**):
+The RAG storage/retrieval layer is implemented as real production-oriented CaseFile code under `src/lib/rag/` (established on this branch, **now integrated into `/api/analyze` via Evidence Assembly**):
 
 ```
 src/lib/rag/
@@ -288,35 +288,24 @@ The schema and migration are applied (verified against Supabase); the demo exerc
 - **Future improvement:** paragraph/section-aware chunking where appropriate, rather than assuming arbitrary fixed character boundaries are ideal.
 - **Explicitly not introduced:** LLM-based semantic chunking, unless a demonstrated benefit exists — it would add unnecessary inference cost and complexity.
 
-### 2.9 Components That Would Change (Existing)
+### 2.9 Components That Changed (Implemented)
 
-| File                           | Change                                                                                                       |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `src/lib/types.ts`             | Add `Chunk`, `EmbeddingMetadata`, `RetrievedChunk`, and knowledge-base-related types.                        |
-| `src/lib/cache.ts`             | Namespace cache keys under `cache:*`; keep TTL constants.                                                    |
-| `src/lib/source.ts`            | Optionally call `ingest.ts` after writing `cache:source:{hash}` (or defer to route orchestration).           |
-| `src/lib/evidence.ts`          | Replace the head/tail truncation of `originalText` with retrieved chunks (see §2.10).                        |
-| `src/lib/overview.ts`          | Accept retrieved context in the prompt alongside (or instead of) truncated raw text.                         |
-| `src/app/api/analyze/route.ts` | Add an ingestion + retrieval step between search/resolution and overview generation.                         |
-| `src/lib/extract.ts`           | (Future decision) Consider feeding retrieved chunks to extraction instead of the raw 12,000-char truncation. |
-| `src/lib/resolve.ts`           | (Future decision) Consider feeding retrieved context to candidate resolution.                                |
+| File                           | Change                                                                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/evidence.ts`          | Added `SearchContext` interface, `ragChunks` field on `Evidence`, and RAG ingestion + retrieval logic in `fetchEvidence`. RAG is contained entirely within Evidence Assembly. |
+| `src/app/api/analyze/route.ts` | Capture #1 CourtListener and #1 Wikipedia search results as `SearchContext` and pass to `fetchEvidence`. No other pipeline changes.                                           |
+| `src/lib/types.ts`             | No changes — RAG types live in `src/lib/rag/types.ts`.                                                                                                                        |
+| `src/lib/cache.ts`             | No changes — RAG uses Supabase/pgvector, not Redis.                                                                                                                           |
+| `src/lib/source.ts`            | No changes — RAG ingestion is deferred to Evidence Assembly, not source extraction.                                                                                           |
+| `src/lib/overview.ts`          | No changes — `ragChunks` are included in the `Evidence` object, which is already serialized into the prompt.                                                                  |
+| `src/lib/extract.ts`           | No changes (future decision).                                                                                                                                                 |
+| `src/lib/resolve.ts`           | No changes (future decision).                                                                                                                                                 |
 
-### 2.10 Intended Retrieval Flow
+### 2.10 Implemented Retrieval Flow
 
 The RAG layer improves CaseFile's LLM context; it does not duplicate the existing external search.
 
-```
-Source extraction
-   → document/chunk ingestion
-   → local embeddings (Transformers.js)
-   → store in Supabase/pgvector
-   → retrieve semantically relevant chunks (pgvector)
-   → combine retrieved context with CaseFile's existing extracted metadata
-     and CourtListener/Wikipedia evidence
-   → send the resulting context to Groq (openai/gpt-oss-120b) for inference
-```
-
-Concretely, the pipeline becomes:
+**Deviation from the originally intended flow:** RAG ingestion was originally planned to occur immediately after Source Extraction (Stage 2), ingesting the user's original source URL. The implemented design instead keeps RAG **entirely within Evidence Assembly** (Stage 5) and ingests the **top CourtListener and top Wikipedia search results** — not the user's original URL. This keeps the existing pipeline conceptually unchanged and avoids introducing RAG into metadata extraction, candidate resolution, or any earlier LLM stage.
 
 ```
 User URL
@@ -325,35 +314,35 @@ User URL
 1. Source Extraction (sourceContent)          [unchanged]
    │
    ▼
-2. Ingest (NEW: ingest.ts)                     → chunk + embed + store in Supabase/pgvector (skip if already ingested)
+2. Metadata Extraction (extractCase)           [unchanged]
    │
    ▼
-3. Metadata Extraction (extractCase)           [unchanged for now; may consume retrieved context in the future]
+3. Parallel External Search                     [unchanged — CourtListener + Wikipedia]
    │
    ▼
-4. Parallel External Search                     [unchanged — CourtListener + Wikipedia]
+4. Candidate Resolution (resolveCase)           [unchanged]
    │
    ▼
-5. Candidate Resolution (resolveCase)           [unchanged for now; may consume retrieved context in the future]
-   │
-   ▼
-6. Evidence Assembly (fetchEvidence)
-      • NEW: retrieval via retrieve.ts          → top-k chunks from pgvector
-      • current-source chunks get priority
-      • cross-source chunks supplement (related/corroborating context)
+5. Evidence Assembly (fetchEvidence)
       • existing Wikipedia summary / CourtListener snippet   [unchanged]
+      • NEW: preserve #1 CourtListener + #1 Wikipedia results as SearchContext
+      • NEW: ingest top results via ingest.ts → chunk + embed + store in Supabase/pgvector (skip if already ingested; max 2 sources)
+      • NEW: retrieve via retrieveChunks → top-k chunks from pgvector
+      • NEW: ragChunks added to Evidence object (additive, non-fatal)
    ▼
-7. Overview Generation (generateOverview)       [prompt now receives retrieved context]
+6. Overview Generation (generateOverview)       [unchanged — receives ragChunks via Evidence JSON]
    │
    ▼
 CaseAnalysis JSON → UI
 ```
 
-### 2.11 Retrieval Scope
+### 2.11 Retrieval Scope (Implemented)
 
-- **Current-source chunks receive priority.** The source being analyzed is always the primary context.
-- **Cross-source retrieval supplements.** Related/corroborating context from the shared knowledge base is added as secondary context.
-- **External search remains.** CourtListener/Wikipedia keyword search stays part of the system. RAG is initially **additive**, not a replacement for those external sources.
+- **RAG sources are search results, not the user's original source.** The #1 CourtListener search result (snippet) and #1 Wikipedia search result (summary) are ingested as RAG sources. The user's original URL is **not** ingested.
+- **At most 2 external sources** are ingested per analysis: top CourtListener result + top Wikipedia result.
+- **Retrieval is additive.** Retrieved chunks are added to the `Evidence` object as `ragChunks` and serialized into the overview prompt alongside existing evidence. The overview-generation prompt/model is **not** modified.
+- **Non-fatal.** If RAG ingestion or retrieval fails (e.g., database unavailable, embedding model fails to load), normal evidence assembly still succeeds. The `ragChunks` field is simply left empty.
+- **External search remains.** CourtListener/Wikipedia keyword search stays part of the system. RAG is additive, not a replacement.
 - **Future stages:** retrieval could eventually improve more than `generateOverview` — `extractCase` and `resolveCase` may benefit from retrieved context. These remain explicit future decisions, not assumptions.
 
 ---
