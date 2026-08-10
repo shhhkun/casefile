@@ -51,6 +51,17 @@ CaseFile uses a **shared, persistent-but-expiring knowledge base** for RAG. This
 | Application cache             | **Upstash Redis** (TTL-based)                                               |
 | Deployment                    | **Vercel**                                                                  |
 
+### 2.4 Implementation Status
+
+The first RAG storage/retrieval integration is **implemented** on the `feat/rag` branch as real CaseFile code under `src/lib/rag/` (types, db, chunk, embed, ingest, retrieve, cleanup, index), with a pgvector migration (`supabase/migrations/0001_rag_init.sql`) and a development entry point (`scripts/rag-demo.ts`). It is **not yet wired into `/api/analyze`** — that remains a separate integration step.
+
+Implementation verification (run locally):
+
+- `npm run db:migrate` — applies the pgvector schema + HNSW index to Supabase (verified).
+- `npm run rag:demo` — proves the full path: chunking → local embedding → Supabase persistence → pgvector retrieval (cross-source + current-source) → dedup/reuse (verified).
+
+**Implementation deviation discovered during work:** the `DATABASE_URL` / `DIRECT_URL` values in `.env.local` contained an unencoded `@` inside the password, which broke pg connection-string parsing. The password is now URL-encoded (`%2Ftx%21hmjL%40Y_ia9X`) in both connection strings. The actual Supabase password was **not** changed.
+
 ---
 
 ## 3. Decision: Embeddings — Locked In
@@ -197,7 +208,7 @@ Use **token-based chunking as the initial baseline**, approximately 512–1024 t
 
 - `extractCase` truncates source text to the first 12,000 chars.
 - `fetchEvidence` truncates `originalText` to 14,000 chars using head (60%) + tail (40%) — the middle is dropped entirely.
-- No chunking exists today.
+- The RAG module (`src/lib/rag/chunk.ts`) implements token-based chunking with overlap (`chunkText`), used by `ingestSource`. It is not yet wired into the `/api/analyze` pipeline.
 
 ### 5.3 Open Sub-Decisions (see §10)
 

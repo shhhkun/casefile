@@ -255,16 +255,31 @@ Key design points:
   - A lazy cleanup query during retrieval (e.g., `DELETE FROM sources WHERE expires_at < now()` before or alongside a search), and/or
   - A scheduled cleanup job (e.g., a cron/edge function) that deletes expired sources; `ON DELETE CASCADE` removes their chunks and embeddings automatically.
 
-### 2.7 Proposed Module Additions
+### 2.7 Implemented RAG Modules
+
+The RAG storage/retrieval layer is implemented as real production-oriented CaseFile code under `src/lib/rag/` (established on this branch, **not integrated into `/api/analyze` yet**):
 
 ```
-src/lib/
-  ingest.ts      → ensures a URL's content is chunked + embedded and stored in Supabase/pgvector (skips if already ingested and unexpired)
-  chunk.ts       → token-based chunking with overlap (modular; see §2.8)
-  embed.ts       → Transformers.js local embedding; vector creation
-  retrieve.ts    → pgvector similarity query; top-k chunk retrieval (current-source priority + cross-source supplement)
-  supabase.ts    → Supabase/pgvector client (connection from .env, no hardcoded credentials)
+src/lib/rag/
+  types.ts     → RAG data types (RagSource, RagChunk, RagEmbedding, RetrievedChunk, IngestInput, IngestResult)
+  db.ts        → lazy pg Pool for Supabase Postgres + pgvector (DATABASE_URL from .env); query/queryOne helpers
+  chunk.ts     → token-based chunking with overlap (chunkText; modular — see §2.8)
+  embed.ts     → Transformers.js local embeddings (embedText / embedTexts; module-level model singleton)
+  ingest.ts    → ensures a URL's content is chunked + embedded and stored in Supabase/pgvector (skips if already ingested and unexpired)
+  retrieve.ts  → pgvector similarity query (retrieveChunks); current-source priority + cross-source supplement
+  cleanup.ts   → deletes expired sources (ON DELETE CASCADE removes chunks/embeddings)
+  index.ts     → barrel export for the RAG module
 ```
+
+Supporting files:
+
+```
+supabase/migrations/0001_rag_init.sql   → enables pgvector; creates rag_sources / rag_chunks / rag_embeddings + HNSW index
+scripts/run-migrations.ts                → applies the migration via DIRECT_URL/DATABASE_URL (npm run db:migrate)
+scripts/rag-demo.ts                      → development/test entry point proving storage → embedding → retrieval (npm run rag:demo)
+```
+
+The schema and migration are applied (verified against Supabase); the demo exercises ingestion (multi-chunk), local embedding, pgvector retrieval (cross-source + current-source), and dedup/reuse.
 
 ### 2.8 Chunking
 
