@@ -6,7 +6,7 @@ import { searchCourtListener } from "@/lib/search";
 import { searchWikipedia } from "@/lib/wiki";
 import { resolveCase } from "@/lib/resolve";
 import { CaseAnalysis } from "@/lib/types";
-import { fetchEvidence } from "@/lib/evidence";
+import { fetchEvidence, SearchContext } from "@/lib/evidence";
 import { generateOverview } from "@/lib/overview";
 
 export async function POST(req: NextRequest) {
@@ -93,8 +93,38 @@ export async function POST(req: NextRequest) {
 
     console.log("Analyze: resolved:", JSON.stringify(resolved, null, 2));
 
-    // Step 6: fetch evidence
-    const evidence = await fetchEvidence(resolved, extracted, content.text);
+    // Preserve the #1 CourtListener and #1 Wikipedia search results as
+    // pipeline metadata for Evidence Assembly (RAG). This does NOT alter
+    // candidate resolution — the resolver above already chose the resolved
+    // case. These results are only used as additional RAG ingestion sources.
+    const searchContext: SearchContext = {};
+
+    if (courtResults.length > 0) {
+      const topCourt = courtResults[0];
+      searchContext.courtlistener = {
+        title: topCourt.title,
+        url: topCourt.url ?? "",
+        snippet: topCourt.snippet ?? "",
+        court: topCourt.metadata?.court,
+        dateFiled: topCourt.metadata?.dateFiled,
+      };
+    }
+
+    if (wikiResult.candidates.length > 0 && wikiResult.summary) {
+      searchContext.wikipedia = {
+        title: wikiResult.candidates[0].title,
+        url: wikiResult.url ?? wikiResult.candidates[0].url ?? "",
+        summary: wikiResult.summary,
+      };
+    }
+
+    // Step 6: fetch evidence (includes RAG ingestion + retrieval)
+    const evidence = await fetchEvidence(
+      resolved,
+      extracted,
+      content.text,
+      searchContext,
+    );
 
     // Step 7: generate case overview
     const overviewStart = performance.now();
