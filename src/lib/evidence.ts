@@ -106,11 +106,22 @@ async function fetchCourtListenerFullText(
     opinionUrl: "",
   };
 
+  const token = process.env.COURTLISTENER_API_TOKEN;
+  if (!token) {
+    console.error("COURTLISTENER_API_TOKEN is not configured");
+    return empty;
+  }
+
   try {
     // 1. Resolve the cluster to find its underlying opinions.
     const clusterRes = await fetch(
       `https://www.courtlistener.com/api/rest/v4/clusters/${clusterId}/`,
-      { headers: { Accept: "application/json" } },
+      {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Token ${token}`,
+        },
+      },
     );
     if (!clusterRes.ok) {
       console.error(
@@ -118,22 +129,33 @@ async function fetchCourtListenerFullText(
       );
       return empty;
     }
+
     const cluster = await clusterRes.json();
+    console.log("CL: cluster response:", JSON.stringify(cluster, null, 2));
     const subOpinions = cluster.sub_opinions ?? [];
-    const firstOpinionId = subOpinions[0] as number | undefined;
-    if (!firstOpinionId) {
+    console.log("CL: sub_opinions:", subOpinions);
+    const firstOpinionUrl = subOpinions[0] as string | undefined;
+
+    console.log("CL: firstOpinionUrl:", firstOpinionUrl);
+    if (!firstOpinionUrl) {
       console.error(`CL: no sub_opinions found for cluster ${clusterId}`);
       return empty;
     }
 
+    console.log("CL: first opinion URL:", firstOpinionUrl);
+
     // 2. Fetch the opinion record; prefer html_with_citations.
-    const opinionRes = await fetch(
-      `https://www.courtlistener.com/api/rest/v4/opinions/${firstOpinionId}/`,
-      { headers: { Accept: "application/json" } },
-    );
+    const opinionRes = await fetch(firstOpinionUrl, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Token ${process.env.COURTLISTENER_API_TOKEN}`,
+      },
+    });
     if (!opinionRes.ok) {
+      const body = await opinionRes.text();
       console.error(
-        `CL: opinion fetch failed (${opinionRes.status}) for ${firstOpinionId}`,
+        `CL: opinion fetch failed (${opinionRes.status}) for ${firstOpinionUrl}`,
+        body,
       );
       return empty;
     }
@@ -141,7 +163,7 @@ async function fetchCourtListenerFullText(
     const html = opinion.html_with_citations ?? opinion.html ?? "";
     if (!html) {
       console.error(
-        `CL: opinion ${firstOpinionId} has no html_with_citations/html`,
+        `CL: opinion ${firstOpinionUrl} has no html_with_citations/html`,
       );
       return empty;
     }
