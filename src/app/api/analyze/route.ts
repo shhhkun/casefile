@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
         snippet: topCourt.snippet ?? "",
         court: topCourt.metadata?.court,
         dateFiled: topCourt.metadata?.dateFiled,
+        clusterId: topCourt.metadata?.cluster_id,
       };
     }
 
