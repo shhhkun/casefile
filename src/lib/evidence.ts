@@ -276,39 +276,6 @@ export async function fetchEvidence(
         dateFiled: selected.metadata?.dateFiled,
       };
     }
-
-    console.log("Evidence sizes:");
-    console.log(
-      "Original text:",
-      evidence.originalText?.length ?? 0,
-      "chars",
-      "≈",
-      Math.ceil((evidence.originalText?.length ?? 0) / 4),
-      "tokens",
-    );
-    console.log(
-      "Wikipedia:",
-      evidence.wikipedia?.text.length ?? 0,
-      "chars",
-      "≈",
-      Math.ceil((evidence.wikipedia?.text.length ?? 0) / 4),
-      "tokens",
-    );
-    console.log(
-      "CourtListener:",
-      evidence.courtlistener?.text.length ?? 0,
-      "chars",
-      "≈",
-      Math.ceil((evidence.courtlistener?.text.length ?? 0) / 4),
-      "tokens",
-    );
-    console.log(
-      "Total evidence chars:",
-      JSON.stringify(evidence).length,
-      "≈",
-      Math.ceil(JSON.stringify(evidence).length / 4),
-      "tokens",
-    );
   } catch (err) {
     console.error("Evidence fetch failed:", err);
   }
@@ -402,12 +369,56 @@ export async function fetchEvidence(
 
       evidence.ragChunks = chunks.slice(0, 3);
 
+      let ragChunksCount = 0;
       console.log(`RAG: retrieved ${chunks.length} chunks`);
       evidence.ragChunks.forEach((chunk, index) => {
+        ragChunksCount += chunk.text.length;
+
         console.log(`===== RAG CHUNK ${index + 1} =====`);
         console.log(chunk);
         console.log(`===== END RAG CHUNK ${index + 1} =====`);
       });
+
+      console.log("Evidence sizes:");
+      console.log(
+        "Original text:",
+        evidence.originalText?.length ?? 0,
+        "chars",
+        "≈",
+        Math.ceil((evidence.originalText?.length ?? 0) / 4),
+        "tokens",
+      );
+      console.log(
+        "Wikipedia:",
+        evidence.wikipedia?.text.length ?? 0,
+        "chars",
+        "≈",
+        Math.ceil((evidence.wikipedia?.text.length ?? 0) / 4),
+        "tokens",
+      );
+      console.log(
+        "CourtListener:",
+        evidence.courtlistener?.text.length ?? 0,
+        "chars",
+        "≈",
+        Math.ceil((evidence.courtlistener?.text.length ?? 0) / 4),
+        "tokens",
+      );
+      console.log(
+        "rag Chunks:",
+        ragChunksCount ?? 0,
+        "chars",
+        "≈",
+        Math.ceil((ragChunksCount ?? 0) / 4),
+        "tokens",
+      );
+      console.log(
+        "Total evidence chars:",
+        JSON.stringify(evidence).length,
+        "≈",
+        Math.ceil(JSON.stringify(evidence).length / 4),
+        "tokens",
+      );
 
       evidence.ragChunks = chunks;
       console.log(`RAG: retrieved ${chunks.length} chunks`);
