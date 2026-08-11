@@ -55,7 +55,14 @@ CaseFile uses a **shared, persistent-but-expiring knowledge base** for RAG. This
 
 The RAG storage/retrieval layer is **implemented** as real CaseFile code under `src/lib/rag/` (types, db, chunk, embed, ingest, retrieve, cleanup, index), with a pgvector migration (`supabase/migrations/0001_rag_init.sql`) and a development entry point (`scripts/rag-demo.ts`).
 
-**Integration into `/api/analyze`:** RAG is now wired into the Evidence Assembly stage (`src/lib/evidence.ts`). The #1 CourtListener and #1 Wikipedia search results are preserved as pipeline metadata (`SearchContext`) in `src/app/api/analyze/route.ts` and passed to `fetchEvidence`, which ingests them through the existing `ingestSource` layer and retrieves relevant chunks via `retrieveChunks`. Retrieved chunks are added to the `Evidence` object as `ragChunks`, making them available to the overview-generation stage without modifying its prompt or model.
+**Integration into `/api/analyze`:** RAG is now wired into the Evidence Assembly stage (`src/lib/evidence.ts`). The #1 CourtListener and #1 Wikipedia search results are preserved as pipeline metadata (`SearchContext`) in `src/app/api/analyze/route.ts` and passed to `fetchEvidence`, which ingests them through the existing `ingestSource` layer and retrieves relevant chunks via `retrieveChunks` (`topK: 3`). Retrieved chunks are added to the `Evidence` object as `ragChunks`, making them available to the overview-generation stage without modifying its prompt or model.
+
+**RAG source material (implemented):** RAG ingests the **full underlying documents** of the top search results, not the search snippets/summaries and not the user's original URL:
+
+- **CourtListener:** the selected search result is an opinion cluster. `fetchEvidence` resolves the cluster via the Clusters API to its `sub_opinions`, fetches the first opinion through the Opinions API, prefers `html_with_citations`, and normalizes it to readable text (Cheerio) before passing it to `ingestSource`. The `cluster_id` is preserved from the search stage (`search.ts` → `SearchContext`).
+- **Wikipedia:** `fetchEvidence` fetches the full article via the MediaWiki REST `with_html` endpoint and normalizes the HTML to readable text before passing it to `ingestSource`.
+
+The normal evidence (Wikipedia summary, CourtListener snippet) is preserved unchanged for the existing pipeline. Missing/failed full-document retrieval is non-fatal — that source is skipped and RAG continues with whatever remains.
 
 Implementation verification:
 
@@ -388,10 +395,13 @@ RAG ingestion and retrieval are **contained entirely within the Evidence Assembl
 
 ### 12.3 Implementation Details
 
-- **`SearchContext` type** (`src/lib/evidence.ts`): Captures the #1 CourtListener result (`title`, `url`, `snippet`, `court`, `dateFiled`) and #1 Wikipedia result (`title`, `url`, `summary`) from the search stage.
-- **Route wiring** (`src/app/api/analyze/route.ts`): After search and resolution, the #1 results are extracted from `courtResults[0]` and `wikiResult.candidates[0]` + `wikiResult.summary`, assembled into a `SearchContext`, and passed to `fetchEvidence`.
-- **Ingest** (`src/lib/evidence.ts`): The top CourtListener snippet and top Wikipedia summary are ingested via the existing `ingestSource` function. At most 2 external sources are ingested per analysis. The existing URL deduplication and TTL behavior is reused.
-- **Retrieve** (`src/lib/evidence.ts`): A retrieval query is built from the extracted case signals (caseName, defendant, victim, crimeType, jurisdiction, state, approximateYear, keywords). The existing `retrieveChunks` function is called with `topK: 5` to retrieve relevant chunks from the knowledge base.
+- **`SearchContext` type** (`src/lib/evidence.ts`): Captures the #1 CourtListener result (`title`, `url`, `snippet`, `court`, `dateFiled`, `clusterId`) and #1 Wikipedia result (`title`, `url`, `summary`) from the search stage.
+- **Route wiring** (`src/app/api/analyze/route.ts`): After search and resolution, the #1 results are extracted from `courtResults[0]` and `wikiResult.candidates[0]` + `wikiResult.summary`, assembled into a `SearchContext`, and passed to `fetchEvidence`. The top CourtListener `cluster_id` is preserved so Evidence Assembly can resolve it to the underlying opinion.
+- **Full-document retrieval** (`src/lib/evidence.ts`): RAG ingests the **full underlying documents**, not snippets/summaries:
+  - **CourtListener:** the cluster is resolved via the Clusters API to its `sub_opinions`; the first opinion is fetched via the Opinions API, preferring `html_with_citations`, then normalized to readable text (Cheerio).
+  - **Wikipedia:** the full article is fetched via the MediaWiki REST `with_html` endpoint and normalized to readable text (Cheerio).
+- **Ingest** (`src/lib/evidence.ts`): The full CourtListener opinion text and full Wikipedia article text are ingested via the existing `ingestSource` function. At most 2 external sources are ingested per analysis. The existing URL deduplication and TTL behavior is reused. Missing/failed full-document retrieval is non-fatal — that source is skipped.
+- **Retrieve** (`src/lib/evidence.ts`): A retrieval query is built from the extracted case signals (caseName, defendant, victim, crimeType, jurisdiction, state, approximateYear, keywords). The existing `retrieveChunks` function is called with `topK: 3` to retrieve relevant chunks from the knowledge base.
 - **Non-fatal error handling:** Both ingestion and retrieval are wrapped in try/catch blocks. Per-source ingestion errors are caught individually; overall RAG errors are caught at the block level. The `ragChunks` field is left empty if RAG fails.
 
 ### 12.4 Deviation from Originally Intended Flow
@@ -399,5 +409,5 @@ RAG ingestion and retrieval are **contained entirely within the Evidence Assembl
 The originally intended flow (architecture.md §2.10) planned RAG ingestion immediately after Source Extraction (Stage 2), ingesting the user's original source URL. The implemented design instead:
 
 1. Defers all RAG logic to Evidence Assembly (Stage 5).
-2. Ingests the top search results (not the user's original URL) as RAG sources.
-3. Preserves search results as pipeline metadata (`SearchContext`) without altering candidate resolution.
+2. Ingests the **full underlying documents** of the top search results (not the user's original URL, and not the snippets/summaries) as RAG sources.
+3. Preserves search results as pipeline metadata (`SearchContext`, including the CourtListener `cluster_id`) without altering candidate resolution.

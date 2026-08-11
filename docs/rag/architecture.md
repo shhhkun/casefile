@@ -290,16 +290,17 @@ The schema and migration are applied (verified against Supabase); the demo exerc
 
 ### 2.9 Components That Changed (Implemented)
 
-| File                           | Change                                                                                                                                                                        |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/evidence.ts`          | Added `SearchContext` interface, `ragChunks` field on `Evidence`, and RAG ingestion + retrieval logic in `fetchEvidence`. RAG is contained entirely within Evidence Assembly. |
-| `src/app/api/analyze/route.ts` | Capture #1 CourtListener and #1 Wikipedia search results as `SearchContext` and pass to `fetchEvidence`. No other pipeline changes.                                           |
-| `src/lib/types.ts`             | No changes — RAG types live in `src/lib/rag/types.ts`.                                                                                                                        |
-| `src/lib/cache.ts`             | No changes — RAG uses Supabase/pgvector, not Redis.                                                                                                                           |
-| `src/lib/source.ts`            | No changes — RAG ingestion is deferred to Evidence Assembly, not source extraction.                                                                                           |
-| `src/lib/overview.ts`          | No changes — `ragChunks` are included in the `Evidence` object, which is already serialized into the prompt.                                                                  |
-| `src/lib/extract.ts`           | No changes (future decision).                                                                                                                                                 |
-| `src/lib/resolve.ts`           | No changes (future decision).                                                                                                                                                 |
+| File                           | Change                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/evidence.ts`          | Added `SearchContext` interface, `ragChunks` field on `Evidence`, and RAG ingestion + retrieval logic in `fetchEvidence`. RAG ingestion now uses the **full underlying documents** of the top search results: CourtListener cluster → opinion (`html_with_citations` → readable text) and Wikipedia article (`with_html` → readable text). Retrieval uses `topK: 3`. |
+| `src/app/api/analyze/route.ts` | Capture #1 CourtListener and #1 Wikipedia search results as `SearchContext` and pass to `fetchEvidence`. Preserves the top CourtListener `cluster_id` so Evidence Assembly can resolve it to the underlying opinion. No other pipeline changes.                                                                                                                      |
+| `src/lib/search.ts`            | Preserves `cluster_id` from CourtListener search results into candidate metadata.                                                                                                                                                                                                                                                                                    |
+| `src/lib/types.ts`             | Added `cluster_id` to `CachedCourtListenerResult`.                                                                                                                                                                                                                                                                                                                   |
+| `src/lib/cache.ts`             | No changes — RAG uses Supabase/pgvector, not Redis.                                                                                                                                                                                                                                                                                                                  |
+| `src/lib/source.ts`            | No changes — RAG ingestion is deferred to Evidence Assembly, not source extraction.                                                                                                                                                                                                                                                                                  |
+| `src/lib/overview.ts`          | No changes — `ragChunks` are included in the `Evidence` object, which is already serialized into the prompt.                                                                                                                                                                                                                                                         |
+| `src/lib/extract.ts`           | No changes (future decision).                                                                                                                                                                                                                                                                                                                                        |
+| `src/lib/resolve.ts`           | No changes (future decision).                                                                                                                                                                                                                                                                                                                                        |
 
 ### 2.10 Implemented Retrieval Flow
 
@@ -324,10 +325,11 @@ User URL
    │
    ▼
 5. Evidence Assembly (fetchEvidence)
-      • existing Wikipedia summary / CourtListener snippet   [unchanged]
-      • NEW: preserve #1 CourtListener + #1 Wikipedia results as SearchContext
-      • NEW: ingest top results via ingest.ts → chunk + embed + store in Supabase/pgvector (skip if already ingested; max 2 sources)
-      • NEW: retrieve via retrieveChunks → top-k chunks from pgvector
+      • existing Wikipedia summary / CourtListener snippet   [unchanged — normal evidence preserved]
+      • NEW: preserve #1 CourtListener (with cluster_id) + #1 Wikipedia results as SearchContext
+      • NEW: resolve CourtListener cluster → opinion (html_with_citations) and fetch Wikipedia full article (with_html); normalize HTML → readable text
+      • NEW: ingest full documents via ingestSource → chunk + embed + store in Supabase/pgvector (skip if already ingested; max 2 sources)
+      • NEW: retrieve via retrieveChunks (topK: 3) → chunks from pgvector
       • NEW: ragChunks added to Evidence object (additive, non-fatal)
    ▼
 6. Overview Generation (generateOverview)       [unchanged — receives ragChunks via Evidence JSON]
@@ -338,8 +340,9 @@ CaseAnalysis JSON → UI
 
 ### 2.11 Retrieval Scope (Implemented)
 
-- **RAG sources are search results, not the user's original source.** The #1 CourtListener search result (snippet) and #1 Wikipedia search result (summary) are ingested as RAG sources. The user's original URL is **not** ingested.
-- **At most 2 external sources** are ingested per analysis: top CourtListener result + top Wikipedia result.
+- **RAG sources are the full underlying documents of the top search results, not the snippets/summaries, and not the user's original source.** For CourtListener, the selected cluster is resolved to its underlying opinion via the Clusters/Opinions APIs and `html_with_citations` is normalized to readable text. For Wikipedia, the full article is fetched via the MediaWiki REST `with_html` endpoint and normalized to readable text. The user's original URL is **not** ingested. The normal evidence (snippet/summary) is preserved unchanged.
+- **At most 2 external full documents** are ingested per analysis: the #1 CourtListener opinion + the #1 Wikipedia article.
+- **Missing/failed full-document retrieval is non-fatal.** If the opinion/article cannot be fetched or normalized, that source is skipped and RAG continues with whatever remains.
 - **Retrieval is additive.** Retrieved chunks are added to the `Evidence` object as `ragChunks` and serialized into the overview prompt alongside existing evidence. The overview-generation prompt/model is **not** modified.
 - **Non-fatal.** If RAG ingestion or retrieval fails (e.g., database unavailable, embedding model fails to load), normal evidence assembly still succeeds. The `ragChunks` field is simply left empty.
 - **External search remains.** CourtListener/Wikipedia keyword search stays part of the system. RAG is additive, not a replacement.
