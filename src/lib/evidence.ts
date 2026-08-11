@@ -399,6 +399,16 @@ export async function fetchEvidence(
     const queryText = buildRagQuery(extracted);
     if (queryText) {
       const chunks = await retrieveChunks(queryText, { topK: 3 });
+
+      evidence.ragChunks = chunks.slice(0, 3);
+
+      console.log(`RAG: retrieved ${chunks.length} chunks`);
+      evidence.ragChunks.forEach((chunk, index) => {
+        console.log(`===== RAG CHUNK ${index + 1} =====`);
+        console.log(chunk);
+        console.log(`===== END RAG CHUNK ${index + 1} =====`);
+      });
+
       evidence.ragChunks = chunks;
       console.log(`RAG: retrieved ${chunks.length} chunks`);
     }
