@@ -7,7 +7,7 @@ import {
   fetchWikipediaSource,
   deleteExpiredSources,
 } from "./rag";
-import type { RetrievedChunk } from "./rag";
+import type { FetchedSource, RetrievedChunk } from "./rag";
 
 export interface Evidence {
   caseInfo?: {
@@ -100,6 +100,60 @@ function buildRagQuery(extracted: ExtractedCase): string {
   return parts.join(" ");
 }
 
+/**
+ * Ingest an external source document into the RAG knowledge base, reusing
+ * an existing unexpired source when present.
+ *
+ * The cheap DB check runs FIRST so that expensive external fetching,
+ * chunking, and embedding are skipped when a valid source already exists.
+ * This is especially important for CourtListener, whose Clusters/Opinions
+ * endpoints are token-authenticated and rate-limited.
+ */
+async function ingestExternalSource(
+  label: string,
+  sourceUrl: string,
+  fetchSource: () => Promise<FetchedSource | null>,
+  extractedMeta: Record<string, unknown>,
+): Promise<void> {
+  const existing = await findReusableSource(sourceUrl);
+
+  if (existing) {
+    console.log(
+      `RAG: ${label} source reused — ${sourceUrl} ` +
+        `(${existing.chunkCount} chunks)`,
+    );
+    return;
+  }
+
+  // Only hit the external API when the source is not already cached.
+  const source = await fetchSource();
+
+  if (!source) {
+    console.error(
+      `RAG: ${label} source unavailable for ${sourceUrl}; skipping`,
+    );
+    return;
+  }
+
+  try {
+    const result = await ingestSource({
+      url: source.url,
+      sourceType: source.sourceType,
+      title: source.title,
+      sourceText: source.sourceText,
+      extractedMeta,
+    });
+
+    console.log(
+      `RAG: ${label} ${source.url} — ` +
+        `${result.reused ? "reused existing source" : "ingested new source"}; ` +
+        `${result.chunkCount} chunks`,
+    );
+  } catch (err) {
+    console.error(`RAG: ${label} ingest failed for ${source.url}:`, err);
+  }
+}
+
 // Fetch full source documents for the resolved case
 export async function fetchEvidence(
   resolved: ResolvedCase,
@@ -180,97 +234,28 @@ export async function fetchEvidence(
     };
 
     // Top CourtListener result (opinion)
-    if (searchContext?.courtlistener?.clusterId) {
-      const clusterId = searchContext.courtlistener.clusterId;
-      const sourceUrl = searchContext.courtlistener.url;
-
-      // Cheap DB check FIRST
-      const existing = await findReusableSource(sourceUrl);
-
-      if (existing) {
-        console.log(
-          `RAG: CourtListener source reused — ${sourceUrl} ` +
-            `(${existing.chunkCount} chunks)`,
-        );
-      } else {
-        // Only hit CourtListener when the source is not already cached
-        const source = await fetchCourtListenerSource(clusterId);
-
-        if (source) {
-          try {
-            const result = await ingestSource({
-              url: source.url,
-              sourceType: source.sourceType,
-              title: source.title,
-              sourceText: source.sourceText,
-              extractedMeta,
-            });
-
-            console.log(
-              `RAG: CourtListener ${source.url} — ` +
-                `${result.reused ? "reused existing source" : "ingested new source"}; ` +
-                `${result.chunkCount} chunks`,
-            );
-          } catch (err) {
-            console.error(
-              `RAG: CourtListener ingest failed for ${source.url}:`,
-              err,
-            );
-          }
-        } else {
-          console.error(
-            `RAG: CourtListener source unavailable for cluster ${clusterId}; skipping`,
-          );
-        }
-      }
+    const court = searchContext?.courtlistener;
+    if (court?.clusterId) {
+      const clusterId = court.clusterId;
+      await ingestExternalSource(
+        "CourtListener",
+        court.url,
+        () => fetchCourtListenerSource(clusterId),
+        extractedMeta,
+      );
     }
 
-    // Top Wikipedia Result
-    if (searchContext?.wikipedia?.title) {
-      const wikipediaUrl = searchContext.wikipedia.url;
-
-      // Cheap DB check FIRST
-      const existing = await findReusableSource(wikipediaUrl);
-
-      if (existing) {
-        console.log(
-          `RAG: Wikipedia source reused — ${wikipediaUrl} ` +
-            `(${existing.chunkCount} chunks)`,
-        );
-      } else {
-        // Only hit Wikipedia when the source is not already cached
-        const source = await fetchWikipediaSource(
-          searchContext.wikipedia.title,
-          wikipediaUrl,
-        );
-
-        if (source) {
-          try {
-            const result = await ingestSource({
-              url: source.url,
-              sourceType: source.sourceType,
-              title: source.title,
-              sourceText: source.sourceText,
-              extractedMeta,
-            });
-
-            console.log(
-              `RAG: Wikipedia ${source.url} — ` +
-                `${result.reused ? "reused existing source" : "ingested new source"}; ` +
-                `${result.chunkCount} chunks`,
-            );
-          } catch (err) {
-            console.error(
-              `RAG: Wikipedia ingest failed for ${source.url}:`,
-              err,
-            );
-          }
-        } else {
-          console.error(
-            `RAG: Wikipedia source unavailable for ${searchContext.wikipedia.title}; skipping`,
-          );
-        }
-      }
+    // Top Wikipedia result (full article)
+    const wiki = searchContext?.wikipedia;
+    if (wiki?.title) {
+      const title = wiki.title;
+      const url = wiki.url;
+      await ingestExternalSource(
+        "Wikipedia",
+        url,
+        () => fetchWikipediaSource(title, url),
+        extractedMeta,
+      );
     }
 
     // Retrieve relevant chunks
