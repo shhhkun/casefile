@@ -7,7 +7,7 @@ import {
   fetchWikipediaSource,
   deleteExpiredSources,
 } from "./rag";
-import type { RetrievedChunk, IngestInput } from "./rag";
+import type { RetrievedChunk } from "./rag";
 
 export interface Evidence {
   caseInfo?: {
