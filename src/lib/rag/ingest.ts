@@ -8,6 +8,39 @@ import { IngestInput, IngestResult } from "./types";
 // The existing Redis source cache TTL (3 days) is the reference point.
 export const DEFAULT_RAG_TTL_DAYS = 3;
 
+export interface ExistingRagSource {
+  sourceId: string;
+  chunkCount: number;
+}
+
+export async function findReusableSource(
+  url: string,
+): Promise<ExistingRagSource | null> {
+  const existing = await queryOne<{ id: string }>(
+    `SELECT id
+     FROM rag_sources
+     WHERE url = $1
+       AND expires_at > now()`,
+    [url],
+  );
+
+  if (!existing) {
+    return null;
+  }
+
+  const chunkCount = await queryOne<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+     FROM rag_chunks
+     WHERE source_id = $1`,
+    [existing.id],
+  );
+
+  return {
+    sourceId: existing.id,
+    chunkCount: Number(chunkCount?.count ?? 0),
+  };
+}
+
 /**
  * Ingest a source document into the RAG knowledge base.
  *
@@ -24,19 +57,12 @@ export async function ingestSource(
   chunkOptions?: ChunkOptions,
 ): Promise<IngestResult> {
   // Step 1: dedup — reuse existing unexpired source if present.
-  const existing = await queryOne<{ id: string }>(
-    `SELECT id FROM rag_sources WHERE url = $1 AND expires_at > now()`,
-    [input.url],
-  );
+  const existing = await findReusableSource(input.url);
 
   if (existing) {
-    const chunkCount = await queryOne<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM rag_chunks WHERE source_id = $1`,
-      [existing.id],
-    );
     return {
-      sourceId: existing.id,
-      chunkCount: Number(chunkCount?.count ?? 0),
+      sourceId: existing.sourceId,
+      chunkCount: existing.chunkCount,
       reused: true,
     };
   }
