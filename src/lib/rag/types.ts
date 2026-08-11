@@ -51,3 +51,10 @@ export interface IngestResult {
   chunkCount: number;
   reused: boolean;
 }
+
+export interface FetchedSource {
+  url: string;
+  sourceType: "youtube" | "article";
+  title: string | null;
+  sourceText: string;
+}
