@@ -1,9 +1,9 @@
 import { RagChunk } from "./types";
 
 export interface ChunkOptions {
-  /** Target chunk size in tokens. Defaults to 1024. */
+  /** Target chunk size in tokens. Defaults to 300. */
   chunkSize?: number;
-  /** Overlap between chunks in tokens. Defaults to 100. */
+  /** Overlap between chunks in tokens. Defaults to 50. */
   overlap?: number;
 }
 
@@ -25,8 +25,8 @@ export function chunkText(
   text: string,
   options: ChunkOptions = {},
 ): Omit<RagChunk, "id" | "sourceId">[] {
-  const chunkSize = options.chunkSize ?? 1024;
-  const overlap = options.overlap ?? 100;
+  const chunkSize = options.chunkSize ?? 300;
+  const overlap = options.overlap ?? 50;
 
   if (chunkSize <= 0) {
     throw new Error("chunkSize must be greater than 0");
