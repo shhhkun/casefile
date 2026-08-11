@@ -64,6 +64,7 @@ export interface CaseOverview {
 
 export interface CachedCourtListenerResult {
   id: string;
+  cluster_id: string;
   caseName: string;
   court: string;
   dateFiled: string;
