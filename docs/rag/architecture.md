@@ -6,7 +6,7 @@ This document describes the current CaseFile pipeline and the intended Retrieval
 
 ## 1. Current CaseFile Pipeline
 
-CaseFile is a single-page Next.js app with one API endpoint (`POST /api/analyze`) that processes a URL synchronously through six stages. There are no user accounts, no document history, and no persistent data store beyond TTL-based Redis caching.
+CaseFile is a single-page Next.js app with one API endpoint (`POST /api/analyze`) that processes a URL synchronously through five stages. There are no user accounts, no document history, and no persistent data store beyond TTL-based Redis caching.
 
 ### 1.1 Stage Overview
 
@@ -22,11 +22,9 @@ User URL
    ▼
 3. Parallel External Search                   → CourtListener + Wikipedia
    ▼
-4. Candidate Resolution (resolveCase)         → Groq LLM (JSON)
+4. Evidence Assembly (fetchEvidence)          → includes RAG ingestion + retrieval
    ▼
-5. Evidence Assembly (fetchEvidence)
-   ▼
-6. Overview Generation (generateOverview)     → Groq LLM (JSON)
+5. Overview Generation (generateOverview)     → Groq LLM (JSON)
    │
    ▼
 CaseAnalysis JSON → UI (PromptCard / SourceCard)
@@ -83,23 +81,17 @@ Runs two searches concurrently via `Promise.all`:
 
 - Uses Jaro-Winkler similarity (threshold 0.84) against the `natural` package to match user-provided refinement names to extracted defendant/victim.
 
-#### Stage 4 — Candidate Resolution (`src/lib/resolve.ts`)
-
-- Takes the top 3 candidates (by score) from the aggregated CourtListener + Wikipedia results.
-- Calls the Groq LLM with the extracted signals and candidate titles/snippets/metadata, asking it to pick the best match and return `{ selectedIndex, confidence, reasoning }`.
-- On LLM parse failure, falls back to the highest-scored candidate.
-- **Caching:** key `cache:resolve:{hash(url)}`, 1-day TTL.
-
-#### Stage 5 — Evidence Assembly (`src/lib/evidence.ts`)
+#### Stage 4 — Evidence Assembly (`src/lib/evidence.ts`)
 
 - Always includes:
   - Structured `caseInfo` (the extracted signals).
   - `originalText`: the source text **truncated to 14,000 chars using a head (60%) + tail (40%) strategy** — middle is dropped.
-- If the resolved candidate is Wikipedia: fetches `page/summary`, includes extract truncated to 6,000 chars.
-- If the resolved candidate is CourtListener: reuses the search snippet as the evidence layer (no full-text fetch).
+- **Wikipedia:** the top Wikipedia search result's concise summary is included as narrative/contextual evidence (truncated to 6,000 chars) when available.
+- **CourtListener:** the top CourtListener search result's snippet is preserved as a lightweight evidence layer; the full opinion is ingested into RAG and retrieved as relevant chunks.
+- **RAG:** ingests the full underlying documents of the top search results (CourtListener opinion + Wikipedia article) and retrieves relevant chunks (`topK: 3`), added as `ragChunks`.
 - Logs approximate token counts for each evidence section.
 
-#### Stage 6 — Overview Generation (`src/lib/overview.ts`)
+#### Stage 5 — Overview Generation (`src/lib/overview.ts`)
 
 - Calls the Groq LLM with the full `Evidence` object serialized into the prompt.
 - Instructs the model to output structured JSON: `summary`, `timeline[]`, `people[]`, `legalOutcome`, `faq[]`.
@@ -111,8 +103,8 @@ Runs two searches concurrently via `Promise.all`:
 The route:
 
 1. Parses `{ url, refinementNames, model }` from the request body.
-2. Runs Stage 1 → 6 sequentially (except Stage 3 which runs CourtListener + Wikipedia in parallel).
-3. Assembles a `CaseAnalysis` object containing `extracted`, `resolved`, `candidates`, `wikiSummary`, `wikiUrl`, `wikiThumbnail`, `refinementNames`, `sourceType`, `sourceTitle`, and `overview`.
+2. Runs Stage 1 → 5 sequentially (except Stage 3 which runs CourtListener + Wikipedia in parallel).
+3. Assembles a `CaseAnalysis` object containing `extracted`, `originalExtracted`, `candidates`, `wikiSummary`, `wikiUrl`, `wikiThumbnail`, `refinementNames`, `sourceType`, `sourceTitle`, and `overview`.
 4. Returns the JSON to the client.
 5. Logs per-stage timing.
 
@@ -124,14 +116,13 @@ The route:
 | `cache:extract:{hash(url)}`         | 3 days | `extract.ts`  |
 | `cache:courtlistener:{hash(query)}` | 1 day  | `search.ts`   |
 | `cache:wikipedia:{hash(query)}`     | 1 day  | `wiki.ts`     |
-| `cache:resolve:{hash(url)}`         | 1 day  | `resolve.ts`  |
 | `cache:overview:{hash(url)}`        | 1 day  | `overview.ts` |
 
 All via Upstash Redis (`src/lib/redis.ts`). TTLs defined in `src/lib/cache.ts`.
 
 ### 1.5 External Dependencies
 
-- **Groq API** (`groq-sdk`): LLM calls for extraction, resolution, and overview generation. Uses `GROQ_API_KEY`.
+- **Groq API** (`groq-sdk`): LLM calls for extraction and overview generation. Uses `GROQ_API_KEY`.
 - **CourtListener API** (public REST): legal search + full-opinion fetching (Clusters/Opinions endpoints, authenticated via `COURTLISTENER_API_TOKEN`).
 - **Wikipedia API** (public REST): search + summary.
 - **YouTube Transcript** (`youtube-transcript` package): video transcripts.
@@ -169,7 +160,6 @@ The stack is:
 - **Upstash Redis** holds only temporary application/cache data, namespaced under `cache:*`:
   - `cache:source:{hash}`
   - `cache:extract:{hash}`
-  - `cache:resolve:{hash}`
   - `cache:overview:{hash}`
   - `cache:courtlistener:{hash}`
   - `cache:wikipedia:{hash}`
@@ -298,18 +288,20 @@ The schema and migration are applied (verified against Supabase); the demo exerc
 | `src/lib/evidence.ts`          | Added `SearchContext` interface, `ragChunks` field on `Evidence`, and RAG ingestion + retrieval logic in `fetchEvidence`. RAG ingestion now uses the **full underlying documents** of the top search results: CourtListener cluster → opinion (`html_with_citations` → readable text) and Wikipedia article (`with_html` → readable text). Retrieval uses `topK: 3`. Runs `deleteExpiredSources()` before ingestion so expired sources are actively cleaned up, then checks `findReusableSource` **before** any external fetch (avoiding unnecessary CourtListener/Wikipedia requests when a valid source already exists). The per-source ingest/fetch flow is factored into a shared `ingestExternalSource` helper. |
 | `src/app/api/analyze/route.ts` | Capture #1 CourtListener and #1 Wikipedia search results as `SearchContext` and pass to `fetchEvidence`. Preserves the top CourtListener `cluster_id` so Evidence Assembly can resolve it to the underlying opinion. No other pipeline changes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `src/lib/search.ts`            | Preserves `cluster_id` from CourtListener search results into candidate metadata.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `src/lib/types.ts`             | Added `cluster_id` to `CachedCourtListenerResult`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `src/lib/cache.ts`             | No changes — RAG uses Supabase/pgvector, not Redis.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/lib/types.ts`             | Added `cluster_id` to `CachedCourtListenerResult`; removed `ResolvedCase` interface and `resolved` field from `CaseAnalysis` (resolution stage removed).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/lib/cache.ts`             | Removed `resolve` TTL key (resolution stage removed). RAG uses Supabase/pgvector, not Redis.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `src/lib/source.ts`            | No changes — RAG ingestion is deferred to Evidence Assembly, not source extraction.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `src/lib/overview.ts`          | No changes — `ragChunks` are included in the `Evidence` object, which is already serialized into the prompt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `src/lib/extract.ts`           | No changes (future decision).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `src/lib/resolve.ts`           | No changes (future decision).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `src/lib/resolve.ts`           | **Removed from active pipeline.** The LLM-based case resolution stage was removed; `resolve.ts` is retained as an inactive legacy module. Search results are now treated as evidence/RAG candidates directly.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ### 2.10 Implemented Retrieval Flow
 
 The RAG layer improves CaseFile's LLM context; it does not duplicate the existing external search.
 
-**Deviation from the originally intended flow:** RAG ingestion was originally planned to occur immediately after Source Extraction (Stage 2), ingesting the user's original source URL. The implemented design instead keeps RAG **entirely within Evidence Assembly** (Stage 5) and ingests the **top CourtListener and top Wikipedia search results** — not the user's original URL. This keeps the existing pipeline conceptually unchanged and avoids introducing RAG into metadata extraction, candidate resolution, or any earlier LLM stage.
+**Deviation from the originally intended flow:** RAG ingestion was originally planned to occur immediately after Source Extraction (Stage 2), ingesting the user's original source URL. The implemented design instead keeps RAG **entirely within Evidence Assembly** (Stage 4) and ingests the **top CourtListener and top Wikipedia search results** — not the user's original URL. This keeps the existing pipeline conceptually unchanged and avoids introducing RAG into metadata extraction or any earlier LLM stage.
+
+**Removal of the resolution stage:** The LLM-based case resolution stage (`resolveCase`) was removed from the active pipeline. Search results are no longer "resolved" into a single canonical case; instead they are treated as available evidence/RAG candidates. Wikipedia provides concise narrative context when available, and CourtListener provides legal source material for RAG retrieval.
 
 ```
 User URL
@@ -324,11 +316,8 @@ User URL
 3. Parallel External Search                     [unchanged — CourtListener + Wikipedia]
    │
    ▼
-4. Candidate Resolution (resolveCase)           [unchanged]
-   │
-   ▼
-5. Evidence Assembly (fetchEvidence)
-      • existing Wikipedia summary / CourtListener snippet   [unchanged — normal evidence preserved]
+4. Evidence Assembly (fetchEvidence)
+      • Wikipedia concise summary / CourtListener snippet   [evidence from search results]
       • NEW: preserve #1 CourtListener (with cluster_id) + #1 Wikipedia results as SearchContext
       • NEW: deleteExpiredSources() — actively clean up expired sources before ingestion
       • NEW: for each source, check findReusableSource (cheap DB query) BEFORE any external fetch — reuse existing unexpired source when present
@@ -337,7 +326,7 @@ User URL
       • NEW: retrieve via retrieveChunks (topK: 3) → chunks from pgvector
       • NEW: ragChunks added to Evidence object (additive, non-fatal)
    ▼
-6. Overview Generation (generateOverview)       [unchanged — receives ragChunks via Evidence JSON]
+5. Overview Generation (generateOverview)       [unchanged — receives ragChunks via Evidence JSON]
    │
    ▼
 CaseAnalysis JSON → UI
@@ -353,7 +342,7 @@ CaseAnalysis JSON → UI
 - **Retrieval is additive.** Retrieved chunks are added to the `Evidence` object as `ragChunks` and serialized into the overview prompt alongside existing evidence. The overview-generation prompt/model is **not** modified.
 - **Non-fatal.** If RAG ingestion or retrieval fails (e.g., database unavailable, embedding model fails to load), normal evidence assembly still succeeds. The `ragChunks` field is simply left empty.
 - **External search remains.** CourtListener/Wikipedia keyword search stays part of the system. RAG is additive, not a replacement.
-- **Future stages:** retrieval could eventually improve more than `generateOverview` — `extractCase` and `resolveCase` may benefit from retrieved context. These remain explicit future decisions, not assumptions.
+- **Future stages:** retrieval could eventually improve more than `generateOverview` — `extractCase` may benefit from retrieved context. This remains an explicit future decision, not an assumption.
 
 ---
 
@@ -375,5 +364,5 @@ These are the genuinely unresolved items that require experimentation:
 3. **Paragraph/section-aware chunking improvements** — whether/when to move beyond fixed token boundaries for articles, transcripts, and CourtListener opinions.
 4. **pgvector index choice/tuning** — HNSW vs. IVFFlat, and index parameters, at CaseFile's expected corpus size.
 5. **Exact TTL/retention period** — configurable; chosen based on storage usage, retrieval usefulness, and Supabase limits.
-6. **Which pipeline stages consume retrieved context beyond `generateOverview`** — `extractCase` and `resolveCase` are candidates but not assumed.
+6. **Which pipeline stages consume retrieved context beyond `generateOverview`** — `extractCase` is a candidate but not assumed.
 7. **Retrieval top-k/context limits and ranking strategy** — how many chunks, how much context budget, and how current-source vs. cross-source results are ranked/combined.
