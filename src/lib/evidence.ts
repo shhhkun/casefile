@@ -1,4 +1,4 @@
-import { ResolvedCase, ExtractedCase } from "./types";
+import { ExtractedCase } from "./types";
 import {
   ingestSource,
   findReusableSource,
@@ -47,11 +47,12 @@ export interface Evidence {
 
 /**
  * The #1 CourtListener and #1 Wikipedia search results, preserved from
- * the search stage so that Evidence Assembly can use them as RAG sources.
+ * the search stage so that Evidence Assembly can use them as RAG sources
+ * and as concise narrative/contextual evidence.
  *
- * This is pipeline metadata only — it does not alter candidate resolution
- * or the resolved-case semantics. The existing resolver continues to choose
- * the resolved case exactly as it currently does.
+ * CourtListener results are primarily RAG ingestion candidates (legal
+ * source corpus for retrieval). Wikipedia results provide concise
+ * narrative/case context when available.
  */
 export interface SearchContext {
   courtlistener?: {
@@ -154,15 +155,12 @@ async function ingestExternalSource(
   }
 }
 
-// Fetch full source documents for the resolved case
+// Fetch evidence from the original source, search results, and RAG.
 export async function fetchEvidence(
-  resolved: ResolvedCase,
   extracted: ExtractedCase,
   originalText: string,
   searchContext?: SearchContext,
 ): Promise<Evidence> {
-  const selected = resolved.selectedCase;
-
   // Always include original extracted input
   const evidence: Evidence = {
     caseInfo: {
@@ -179,38 +177,29 @@ export async function fetchEvidence(
 
   console.log("Evidence caseInfo:", JSON.stringify(evidence.caseInfo, null, 2));
 
-  try {
-    if (selected.source === "wikipedia" && selected.url) {
-      const pageTitle = selected.url.split("/wiki/")[1];
+  // Wikipedia: use the concise summary as narrative/contextual evidence
+  // when a Wikipedia search result exists.
+  const wiki = searchContext?.wikipedia;
+  if (wiki?.title) {
+    evidence.wikipedia = {
+      title: wiki.title,
+      text: limitText(wiki.summary, 6000),
+      url: wiki.url,
+    };
+  }
 
-      const res = await fetch(
-        `https://en.wikipedia.org/api/rest_v1/page/summary/${pageTitle}`,
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-
-        evidence.wikipedia = {
-          title: data.title,
-          text: limitText(data.extract, 6000),
-          url: data.content_urls?.desktop?.page ?? selected.url,
-        };
-      }
-    }
-
-    if (selected.source === "courtlistener" && selected.url) {
-      // CourtListener doesn't give full text easily via search API, so we reuse snippet as "evidence layer" for now
-
-      evidence.courtlistener = {
-        title: selected.title,
-        text: selected.snippet ?? "", // 4000 limit once arg type fixed
-        url: selected.url,
-        court: selected.metadata?.court,
-        dateFiled: selected.metadata?.dateFiled,
-      };
-    }
-  } catch (err) {
-    console.error("Evidence fetch failed:", err);
+  // CourtListener: the top search result's snippet is preserved as a
+  // lightweight evidence layer. The full opinion is ingested into RAG
+  // below and retrieved as relevant chunks.
+  const court = searchContext?.courtlistener;
+  if (court?.title) {
+    evidence.courtlistener = {
+      title: court.title,
+      text: court.snippet ?? "",
+      url: court.url,
+      court: court.court,
+      dateFiled: court.dateFiled,
+    };
   }
 
   // RAG: ingest the full underlying documents of the top search results and
@@ -234,7 +223,6 @@ export async function fetchEvidence(
     };
 
     // Top CourtListener result (opinion)
-    const court = searchContext?.courtlistener;
     if (court?.clusterId) {
       const clusterId = court.clusterId;
       await ingestExternalSource(
@@ -246,7 +234,6 @@ export async function fetchEvidence(
     }
 
     // Top Wikipedia result (full article)
-    const wiki = searchContext?.wikipedia;
     if (wiki?.title) {
       const title = wiki.title;
       const url = wiki.url;
