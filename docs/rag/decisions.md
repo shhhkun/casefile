@@ -272,7 +272,6 @@ The knowledge base is **persistent across requests but temporary over time**. Us
 Retrieval could eventually improve more than `generateOverview`:
 
 - **`extractCase`** may benefit from retrieved context instead of the raw 12,000-char truncation.
-- **`resolveCase`** may benefit from retrieved context in candidate selection.
 
 These remain **explicit future decisions** and are not assumed in the current implementation plan.
 
@@ -287,7 +286,6 @@ Keep Redis cache keys conceptually separated from RAG storage. Prefer simple nam
 ```
 cache:source:{hash}
 cache:extract:{hash}
-cache:resolve:{hash}
 cache:overview:{hash}
 cache:courtlistener:{hash}
 cache:wikipedia:{hash}
@@ -356,7 +354,7 @@ These are the genuinely unresolved items that require experimentation:
 3. **Paragraph/section-aware chunking improvements** — whether/when to move beyond fixed token boundaries for articles, transcripts, and CourtListener opinions.
 4. **pgvector index choice/tuning** — HNSW vs. IVFFlat, and index parameters, at CaseFile's expected corpus size.
 5. **Exact TTL/retention period** — configurable; chosen based on storage usage, retrieval usefulness, and Supabase limits.
-6. **Which pipeline stages consume retrieved context beyond `generateOverview`** — `extractCase` and `resolveCase` are candidates but not assumed.
+6. **Which pipeline stages consume retrieved context beyond `generateOverview`** — `extractCase` is a candidate but not assumed.
 7. **Retrieval top-k/context limits and ranking strategy** — how many chunks, how much context budget, and how current-source vs. cross-source results are ranked/combined.
 
 ---
@@ -385,12 +383,11 @@ These decisions keep CaseFile free to operate, align with its existing stateless
 
 ### 12.1 The Decision
 
-RAG ingestion and retrieval are **contained entirely within the Evidence Assembly stage** (`src/lib/evidence.ts`). No RAG logic is introduced into metadata extraction, candidate resolution, or any earlier LLM stage.
+RAG ingestion and retrieval are **contained entirely within the Evidence Assembly stage** (`src/lib/evidence.ts`). No RAG logic is introduced into metadata extraction or any earlier LLM stage.
 
 ### 12.2 Rationale
 
-- **Minimal pipeline disruption:** The existing CaseFile pipeline (Source Extraction → Metadata Extraction → Search → Resolution → Evidence Assembly → Overview) remains conceptually unchanged. The only pipeline-level adjustment is preserving the #1 CourtListener and #1 Wikipedia search results as `SearchContext` metadata for Evidence Assembly.
-- **No redesign of candidate resolution:** The resolver continues choosing the resolved case exactly as it currently does. Search results are preserved as metadata, not used to alter resolution.
+- **Minimal pipeline disruption:** The existing CaseFile pipeline (Source Extraction → Metadata Extraction → Search → Evidence Assembly → Overview) remains conceptually unchanged. The only pipeline-level adjustment is preserving the #1 CourtListener and #1 Wikipedia search results as `SearchContext` metadata for Evidence Assembly.
 - **No ingestion of the user's original URL:** The user's original source is not ingested into the RAG knowledge base. Instead, the **full underlying documents** of the top search results (the CourtListener opinion and the Wikipedia article) are ingested as external corroborating sources.
 - **Additive and non-fatal:** RAG retrieval augments the `Evidence` object with `ragChunks` but does not replace existing evidence. If RAG fails (database unavailable, embedding model fails to load), normal evidence assembly still succeeds.
 - **No overview-generation changes:** The `ragChunks` field is included in the `Evidence` object, which is already serialized into the overview prompt via `JSON.stringify(evidence)`. The overview-generation prompt and model are not modified.
@@ -398,7 +395,7 @@ RAG ingestion and retrieval are **contained entirely within the Evidence Assembl
 ### 12.3 Implementation Details
 
 - **`SearchContext` type** (`src/lib/evidence.ts`): Captures the #1 CourtListener result (`title`, `url`, `snippet`, `court`, `dateFiled`, `clusterId`) and #1 Wikipedia result (`title`, `url`, `summary`) from the search stage.
-- **Route wiring** (`src/app/api/analyze/route.ts`): After search and resolution, the #1 results are extracted from `courtResults[0]` and `wikiResult.candidates[0]` + `wikiResult.summary`, assembled into a `SearchContext`, and passed to `fetchEvidence`. The top CourtListener `cluster_id` is preserved so Evidence Assembly can resolve it to the underlying opinion.
+- **Route wiring** (`src/app/api/analyze/route.ts`): After search, the #1 results are extracted from `courtResults[0]` and `wikiResult.candidates[0]` + `wikiResult.summary`, assembled into a `SearchContext`, and passed to `fetchEvidence`. The top CourtListener `cluster_id` is preserved so Evidence Assembly can resolve it to the underlying opinion.
 - **External full-document fetching** (`src/lib/rag/fetch.ts`): A dedicated module owns all external full-document retrieval, separated from evidence orchestration:
   - **CourtListener:** `fetchCourtListenerSource(clusterId)` resolves the cluster via the Clusters API to its `sub_opinions`; the first opinion is fetched via the Opinions API, preferring `html_with_citations`, then normalized to readable text (Cheerio). Authenticated with `COURTLISTENER_API_TOKEN`.
   - **Wikipedia:** `fetchWikipediaSource(title, url)` fetches the full article via the MediaWiki REST `with_html` endpoint and normalizes the HTML to readable text (Cheerio).
@@ -413,6 +410,6 @@ RAG ingestion and retrieval are **contained entirely within the Evidence Assembl
 
 The originally intended flow (architecture.md §2.10) planned RAG ingestion immediately after Source Extraction (Stage 2), ingesting the user's original source URL. The implemented design instead:
 
-1. Defers all RAG logic to Evidence Assembly (Stage 5).
+1. Defers all RAG logic to Evidence Assembly (Stage 4).
 2. Ingests the **full underlying documents** of the top search results (not the user's original URL, and not the snippets/summaries) as RAG sources.
 3. Preserves search results as pipeline metadata (`SearchContext`, including the CourtListener `cluster_id`) without altering candidate resolution.
