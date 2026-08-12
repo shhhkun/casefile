@@ -1,0 +1,158 @@
+{
+  "queries": [
+    {
+      "id": "hadden-clark-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "Who was Hadden Clark and what crimes was he convicted of?"
+    },
+    {
+      "id": "hadden-clark-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "What happened to Michelle Dorr and how was Hadden Clark connected to her disappearance?"
+    },
+    {
+      "id": "hadden-clark-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "What evidence or statements connected Hadden Clark to the murders he was accused of?"
+    },
+    {
+      "id": "hadden-clark-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "Where did the crimes involving Hadden Clark take place?"
+    },
+    {
+      "id": "hadden-clark-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "What was Hadden Clark's background and what was known about his behavior before the murders?"
+    },
+    {
+      "id": "hadden-clark-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "How was Hadden Clark eventually identified and prosecuted for the murders?"
+    },
+
+    {
+      "id": "travis-alexander-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "Who was Travis Alexander and how was he murdered?"
+    },
+    {
+      "id": "travis-alexander-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What was Jodi Arias's relationship with Travis Alexander before his murder?"
+    },
+    {
+      "id": "travis-alexander-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What evidence was used against Jodi Arias in the Travis Alexander murder case?"
+    },
+    {
+      "id": "travis-alexander-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "Where and when did the murder of Travis Alexander occur?"
+    },
+    {
+      "id": "travis-alexander-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What did investigators discover at Travis Alexander's home after his death?"
+    },
+    {
+      "id": "travis-alexander-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What was the outcome of Jodi Arias's trial for the murder of Travis Alexander?"
+    },
+
+    {
+      "id": "jennifer-pan-01",
+      "sourceUrl": "https://www.aetv.com/articles/jennifer-pan",
+      "query": "Who is Jennifer Pan and what happened to her parents?"
+    },
+    {
+      "id": "jennifer-pan-02",
+      "sourceUrl": "https://www.aetv.com/articles/jennifer-pan",
+      "query": "Why did Jennifer Pan arrange for her parents to be attacked?"
+    },
+    {
+      "id": "jennifer-pan-03",
+      "sourceUrl": "https://www.aetv.com/articles/jennifer-pan",
+      "query": "How did the attack on Jennifer Pan's family unfold?"
+    },
+    {
+      "id": "jennifer-pan-04",
+      "sourceUrl": "https://www.aetv.com/articles/jennifer-pan",
+      "query": "What happened to Jennifer Pan's mother and father during the home invasion?"
+    },
+    {
+      "id": "jennifer-pan-05",
+      "sourceUrl": "https://www.aetv.com/articles/jennifer-pan",
+      "query": "What evidence caused investigators to suspect Jennifer Pan was involved in the attack?"
+    },
+    {
+      "id": "jennifer-pan-06",
+      "sourceUrl": "https://www.aetv.com/articles/jennifer-pan",
+      "query": "What was the eventual legal outcome for Jennifer Pan?"
+    },
+
+    {
+      "id": "jacob-wetterling-01",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "What happened to Jacob Wetterling when he was kidnapped?"
+    },
+    {
+      "id": "jacob-wetterling-02",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "Who was Jacob Wetterling and what happened to him in Minnesota?"
+    },
+    {
+      "id": "jacob-wetterling-03",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "What happened to Jacob Wetterling's family after his disappearance?"
+    },
+    {
+      "id": "jacob-wetterling-04",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "How was Jacob Wetterling's disappearance eventually resolved?"
+    },
+    {
+      "id": "jacob-wetterling-05",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "Who was responsible for Jacob Wetterling's kidnapping and murder?"
+    },
+    {
+      "id": "jacob-wetterling-06",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "What impact did Jacob Wetterling's case have on missing children investigations and law enforcement?"
+    },
+
+    {
+      "id": "stephanie-lazarus-01",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "Who was Stephanie Lazarus and what crime was she convicted of?"
+    },
+    {
+      "id": "stephanie-lazarus-02",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "Who was Sherri Rasmussen and what happened to her?"
+    },
+    {
+      "id": "stephanie-lazarus-03",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "What was the relationship between Stephanie Lazarus and Sherri Rasmussen's husband?"
+    },
+    {
+      "id": "stephanie-lazarus-04",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "How was Stephanie Lazarus eventually identified as the killer years after the murder?"
+    },
+    {
+      "id": "stephanie-lazarus-05",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "What evidence linked former LAPD detective Stephanie Lazarus to the murder?"
+    },
+    {
+      "id": "stephanie-lazarus-06",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "What happened to Stephanie Lazarus after she was convicted of murder?"
+    }
+  ]
+}
