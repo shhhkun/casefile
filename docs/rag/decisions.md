@@ -74,8 +74,6 @@ Implementation verification:
 - `npm run rag:demo` — proves the full path: chunking → local embedding → Supabase persistence → pgvector retrieval (cross-source + current-source) → dedup/reuse (verified).
 - E2E tests (`npm test`) — error-path tests pass; full-pipeline tests require external API access (Groq, CourtListener, Wikipedia) and timeout in environments without valid API keys.
 
-**Implementation deviation discovered during work:** the `DATABASE_URL` / `DIRECT_URL` values in `.env.local` contained an unencoded `@` inside the password, which broke pg connection-string parsing. The password is now URL-encoded (`%2Ftx%21hmjL%40Y_ia9X`) in both connection strings. The actual Supabase password was **not** changed.
-
 ---
 
 ## 3. Decision: Embeddings — Locked In
@@ -259,7 +257,7 @@ The knowledge base is **persistent across requests but temporary over time**. Us
 
 ### 7.1 The Decision
 
-- **Current-source chunks receive priority.** The source being analyzed is always the primary context.
+- **Current-source receive priority.** The source being analyzed is always the primary context.
 - **Cross-source retrieval supplements.** Related/corroborating context from the shared knowledge base is added as secondary context.
 - **External search remains part of the system.** CourtListener/Wikipedia keyword search stays; RAG is initially **additive**, not a replacement for those external sources.
 
