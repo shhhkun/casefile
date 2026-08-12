@@ -55,7 +55,8 @@ function caseNameFromId(id: string): string {
  * the case name (e.g. "Hadden Clark"), or if its source URL path contains
  * the underscored case slug (e.g. ".../wiki/Hadden_Clark"). This matches
  * chunks that discuss the case regardless of which URL they were ingested
- * under, and avoids requiring an exact sourceUrl match.
+ * under, and avoids requiring an exact match between the query's sourceUrl
+ * and the retrieved chunk's sourceUrl.
  */
 function isRelevant(chunk: RetrievedChunk, queryId: string): boolean {
   const slug = queryId.replace(/-\d+$/, "");
@@ -150,7 +151,7 @@ function fmtNum(n: number): string {
 }
 
 /**
- * Generate a human-readable group label from a source URL.
+ * Generate a human-readable group label from a sourceUrl.
  */
 function groupLabel(sourceUrl: string): string {
   try {
@@ -178,7 +179,7 @@ function buildReport(
   lines.push(`**Groups:** ${groupResults.size}`);
   lines.push("");
   lines.push(
-    "**Ground truth:** a retrieved chunk is relevant if it references the query's case name (derived from the query id slug) in its text or source URL. Recall@3 is binary (1 if at least one relevant chunk is in the top-3).",
+    "**Ground truth:** a retrieved chunk is relevant if it references the query's case name (derived from the query id slug) in its text or retrieved chunk source URL. Recall@3 is binary (1 if at least one relevant chunk is in the top-3).",
   );
   lines.push("");
 
@@ -214,7 +215,7 @@ function buildReport(
     lines.push(`### ${r.id}`);
     lines.push("");
     lines.push(`**Query:** ${r.query}`);
-    lines.push(`**Case / expected source:** ${r.caseName} (${r.sourceUrl})`);
+    lines.push(`**Case:** ${r.caseName} (${r.sourceUrl})`);
     lines.push(`**Relevant in top-${TOP_K}:** ${r.relevantInTopK}`);
     lines.push(`**First relevant rank:** ${r.firstRelevantRank || "— (none)"}`);
     lines.push(
@@ -265,7 +266,7 @@ async function main() {
   for (const q of queries) {
     console.log(`\nEvaluating: ${q.id}`);
     console.log(`  Query: ${q.query}`);
-    console.log(`  Expected source: ${q.sourceUrl}`);
+    console.log(`  Source URL: ${q.sourceUrl}`);
 
     const result = await evaluateQuery(q);
     allResults.push(result);
