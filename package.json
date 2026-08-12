@@ -12,7 +12,8 @@
     "test": "playwright test",
     "test:report": "playwright show-report",
     "db:migrate": "tsx scripts/run-migrations.ts",
-    "rag:demo": "tsx scripts/rag-demo.ts"
+    "rag:demo": "tsx scripts/rag-demo.ts",
+    "rag:eval": "tsx scripts/rag-evaluation.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
