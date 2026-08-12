@@ -4,7 +4,6 @@ import { sourceContent } from "@/lib/source";
 import { extractCase } from "@/lib/extract";
 import { searchCourtListener } from "@/lib/search";
 import { searchWikipedia } from "@/lib/wiki";
-import { resolveCase } from "@/lib/resolve";
 import { CaseAnalysis } from "@/lib/types";
 import { fetchEvidence, SearchContext } from "@/lib/evidence";
 import { generateOverview } from "@/lib/overview";
@@ -72,31 +71,16 @@ export async function POST(req: NextRequest) {
     console.log("Analyze: court candidates:", courtResults.length);
     console.log("Analyze: wiki candidates:", wikiResult.candidates.length);
 
-    // Step 4: aggregate and sort candidates
+    // Aggregate and sort candidates for the UI and RAG ingestion.
     const allCandidates = [...courtResults, ...wikiResult.candidates];
     allCandidates.sort((a, b) => b.score - a.score);
 
     console.log("Analyze: total candidates:", allCandidates.length);
 
-    const resolveStart = performance.now();
-    // Step 5: resolve best match
-    console.log("Analyze: resolving case");
-    const resolved = await resolveCase(extracted, allCandidates, model, url);
-    const resolveTime = performance.now() - resolveStart;
-
-    if (!resolved) {
-      return NextResponse.json(
-        { error: "Could not resolve case from search results" },
-        { status: 404 },
-      );
-    }
-
-    console.log("Analyze: resolved:", JSON.stringify(resolved, null, 2));
-
     // Preserve the #1 CourtListener and #1 Wikipedia search results as
-    // pipeline metadata for Evidence Assembly (RAG). This does NOT alter
-    // candidate resolution — the resolver above already chose the resolved
-    // case. These results are only used as additional RAG ingestion sources.
+    // pipeline metadata for Evidence Assembly (RAG). CourtListener results
+    // are RAG ingestion candidates (legal source corpus for retrieval);
+    // Wikipedia results provide concise narrative/case context.
     const searchContext: SearchContext = {};
 
     if (courtResults.length > 0) {
@@ -119,15 +103,14 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // Step 6: fetch evidence (includes RAG ingestion + retrieval)
+    // Step 5: fetch evidence (includes RAG ingestion + retrieval)
     const evidence = await fetchEvidence(
-      resolved,
       extracted,
       content.text,
       searchContext,
     );
 
-    // Step 7: generate case overview
+    // Step 6: generate case overview
     const overviewStart = performance.now();
     const overview = await generateOverview(evidence, model, url);
     const overviewTime = performance.now() - overviewStart;
@@ -135,7 +118,6 @@ export async function POST(req: NextRequest) {
     const analysis: CaseAnalysis = {
       extracted,
       originalExtracted: extracted,
-      resolved,
       candidates: allCandidates,
       wikiSummary: wikiResult.summary,
       wikiUrl: wikiResult.url,
@@ -151,7 +133,6 @@ export async function POST(req: NextRequest) {
     console.log(`Source completed in ${sourceTime.toFixed(0)} ms`);
     console.log(`Extract completed in ${extractTime.toFixed(0)} ms`);
     console.log(`Search completed in ${searchTime.toFixed(0)} ms`);
-    console.log(`Resolve completed in ${resolveTime.toFixed(0)} ms`);
     console.log(`Overview completed in ${overviewTime.toFixed(0)} ms`);
     console.log(
       `Analyze (API) completed in ${(analyzeEnd - analyzeStart).toFixed(0)} ms`,
