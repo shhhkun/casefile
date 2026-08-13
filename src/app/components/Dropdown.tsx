@@ -13,9 +13,9 @@ const models = [
     value: "llama-3.3-70b-versatile",
   },
   {
-    label: "Llama-3.1-8B",
-    desc: "Fast Response",
-    value: "llama-3.1-8b-instant",
+    label: "GPT-OSS-20B",
+    desc: "Fast & Efficient",
+    value: "openai/gpt-oss-20b",
   },
 ];
 
