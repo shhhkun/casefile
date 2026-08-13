@@ -4,30 +4,8 @@ import {
   FeatureExtractionPipeline,
 } from "@huggingface/transformers";
 
-// ==========================================
-// CRITICAL VERCEL SERVERLESS CONFIGURATION
-// ==========================================
-
-// FIX: Cast as an explicit structural object record instead of using banned 'any'
-const onnxBackend = env.backends.onnx as Record<
-  string,
-  Record<string, unknown>
->;
-
-if (onnxBackend) {
-  // Disable native C++ node modules (avoids searching for libonnxruntime.so.1)
-  if (!onnxBackend.node) onnxBackend.node = {};
-  onnxBackend.node.enabled = false;
-
-  // Force Fallback to WebAssembly engine
-  if (!onnxBackend.wasm) onnxBackend.wasm = {};
-  onnxBackend.wasm.numThreads = 1;
-}
-
-// 2. Bypass local filesystem checks and redirect download cache to writeable space
 env.allowLocalModels = false;
 env.cacheDir = "/tmp/huggingface_cache";
-// ==========================================
 
 export const EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2";
 export const EMBEDDING_DIMENSIONS = 384;
