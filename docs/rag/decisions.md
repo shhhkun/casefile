@@ -334,8 +334,6 @@ Mitigations (accepted as operational, not a decision):
 
 Supabase connection details are read from the existing `.env.local`:
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `DATABASE_URL`
 - `DIRECT_URL`
 

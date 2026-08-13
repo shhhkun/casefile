@@ -351,7 +351,7 @@ CaseAnalysis JSON → UI
 - **Vercel/serverless fit:** Supabase Postgres is reachable over the network (via `DATABASE_URL`/`DIRECT_URL` from `.env.local`); pgvector queries run in the database, keeping serverless functions compute-light. Upstash Redis remains REST-based and cache-only.
 - **Local-embedding cold start:** Transformers.js model weights (~25 MB for `all-MiniLM-L6-v2`) load on first use after a cold start. Mitigations: module-level singleton, smallest adequate model, accept first-request latency.
 - **Supabase free tier:** storage and compute limits apply. The architecture must stay within free-tier constraints; the point at which the architecture needs reconsideration is documented in `decisions.md`.
-- **Configuration:** Supabase connection details are read from the existing `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `DATABASE_URL`, `DIRECT_URL`). CourtListener full-opinion fetching requires `COURTLISTENER_API_TOKEN` in `.env.local` (used by `fetch.ts` to authenticate Clusters/Opinions API requests). No credentials are hardcoded.
+- **Configuration:** Supabase connection details are read from the existing `.env.local` (`DATABASE_URL`, `DIRECT_URL`). CourtListener full-opinion fetching requires `COURTLISTENER_API_TOKEN` in `.env.local` (used by `fetch.ts` to authenticate Clusters/Opinions API requests). No credentials are hardcoded.
 
 ---
 
