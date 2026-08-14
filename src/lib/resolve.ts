@@ -1,7 +1,17 @@
 import Groq from "groq-sdk";
-import { ExtractedCase, ScoredCandidate, ResolvedCase } from "./types";
+import { ExtractedCase, ScoredCandidate } from "./types";
 import { redis } from "./redis";
-import { CACHE_TTL } from "./cache";
+
+// Legacy local type — resolve.ts is no longer part of the active pipeline
+// (see docs/rag), but is retained for reference.
+interface ResolvedCase {
+  selectedCase: ScoredCandidate;
+  confidence: number;
+  reasoning: string;
+}
+
+// Retained locally since the shared CACHE_TTL no longer exposes a resolve key.
+const RESOLVE_TTL = 60 * 60 * 24;
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -87,7 +97,7 @@ export async function resolveCase(
       reasoning: result.reasoning,
     };
 
-    await redis.set(key, topResult, { ex: CACHE_TTL.resolve });
+    await redis.set(key, topResult, { ex: RESOLVE_TTL });
     console.log("Resolve cache MISS");
 
     return topResult;

@@ -1,0 +1,313 @@
+{
+  "queries": [
+    {
+      "id": "hadden-clark-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "Who was Hadden Clark and what crimes was he convicted of?"
+    },
+    {
+      "id": "hadden-clark-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "What happened to Michelle Dorr and how was Hadden Clark connected to her disappearance?"
+    },
+    {
+      "id": "hadden-clark-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "What evidence or statements connected Hadden Clark to the murders he was accused of?"
+    },
+    {
+      "id": "hadden-clark-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "Where did the crimes involving Hadden Clark take place?"
+    },
+    {
+      "id": "hadden-clark-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "What was Hadden Clark's background and what was known about his behavior before the murders?"
+    },
+    {
+      "id": "hadden-clark-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hadden_Clark",
+      "query": "How was Hadden Clark eventually identified and prosecuted for the murders?"
+    },
+
+    {
+      "id": "travis-alexander-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "Who was Travis Alexander and how was he murdered?"
+    },
+    {
+      "id": "travis-alexander-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What was Jodi Arias's relationship with Travis Alexander before his murder?"
+    },
+    {
+      "id": "travis-alexander-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What evidence was used against Jodi Arias in the Travis Alexander murder case?"
+    },
+    {
+      "id": "travis-alexander-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "Where and when did the murder of Travis Alexander occur?"
+    },
+    {
+      "id": "travis-alexander-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What did investigators discover at Travis Alexander's home after his death?"
+    },
+    {
+      "id": "travis-alexander-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Travis_Alexander",
+      "query": "What was the outcome of Jodi Arias's trial for the murder of Travis Alexander?"
+    },
+
+    {
+      "id": "jacob-wetterling-01",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "What happened to Jacob Wetterling when he was kidnapped?"
+    },
+    {
+      "id": "jacob-wetterling-02",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "Who was Jacob Wetterling and what happened to him in Minnesota?"
+    },
+    {
+      "id": "jacob-wetterling-03",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "What happened to Jacob Wetterling's family after his disappearance?"
+    },
+    {
+      "id": "jacob-wetterling-04",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "How was Jacob Wetterling's disappearance eventually resolved?"
+    },
+    {
+      "id": "jacob-wetterling-05",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "Who was responsible for Jacob Wetterling's kidnapping and murder?"
+    },
+    {
+      "id": "jacob-wetterling-06",
+      "sourceUrl": "https://abcnews.com/US/minnesota-kidnapping-survivor-mother-slain-boy-speak/story?id=134561774",
+      "query": "What impact did Jacob Wetterling's case have on missing children investigations and law enforcement?"
+    },
+
+    {
+      "id": "stephanie-lazarus-01",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "Who was Stephanie Lazarus and what crime was she convicted of?"
+    },
+    {
+      "id": "stephanie-lazarus-02",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "Who was Sherri Rasmussen and what happened to her?"
+    },
+    {
+      "id": "stephanie-lazarus-03",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "What was the relationship between Stephanie Lazarus and Sherri Rasmussen's husband?"
+    },
+    {
+      "id": "stephanie-lazarus-04",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "How was Stephanie Lazarus eventually identified as the killer years after the murder?"
+    },
+    {
+      "id": "stephanie-lazarus-05",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "What evidence linked former LAPD detective Stephanie Lazarus to the murder?"
+    },
+    {
+      "id": "stephanie-lazarus-06",
+      "sourceUrl": "https://www.cbsnews.com/losangeles/news/stephanie-lazarus-former-lapd-detective-who-shot-ex-lovers-new-wife-has-parole-denied-again/",
+      "query": "What happened to Stephanie Lazarus after she was convicted of murder?"
+    },
+
+    {
+      "id": "casey-anthony-01",
+      "sourceUrl": "https://people.com/casey-anthony-case-complete-timeline-8422805",
+      "query": "Who is Casey Anthony and what happened to her daughter Caylee?"
+    },
+    {
+      "id": "casey-anthony-02",
+      "sourceUrl": "https://people.com/casey-anthony-case-complete-timeline-8422805",
+      "query": "What happened after Caylee Anthony was reported missing?"
+    },
+    {
+      "id": "casey-anthony-03",
+      "sourceUrl": "https://people.com/casey-anthony-case-complete-timeline-8422805",
+      "query": "What evidence was presented against Casey Anthony in court?"
+    },
+    {
+      "id": "casey-anthony-04",
+      "sourceUrl": "https://people.com/casey-anthony-case-complete-timeline-8422805",
+      "query": "What was the timeline of Caylee Anthony's disappearance and death?"
+    },
+    {
+      "id": "casey-anthony-05",
+      "sourceUrl": "https://people.com/casey-anthony-case-complete-timeline-8422805",
+      "query": "What was the outcome of Casey Anthony's murder trial?"
+    },
+    {
+      "id": "casey-anthony-06",
+      "sourceUrl": "https://people.com/casey-anthony-case-complete-timeline-8422805",
+      "query": "What happened to Casey Anthony after her trial?"
+    },
+
+    {
+      "id": "watts-family-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Watts_family_murders",
+      "query": "Who were the Watts family and what happened to them?"
+    },
+    {
+      "id": "watts-family-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Watts_family_murders",
+      "query": "What happened to Shanann Watts and her daughters?"
+    },
+    {
+      "id": "watts-family-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Watts_family_murders",
+      "query": "What evidence connected Chris Watts to the murders of his family?"
+    },
+    {
+      "id": "watts-family-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Watts_family_murders",
+      "query": "What happened during the investigation into the Watts family murders?"
+    },
+    {
+      "id": "watts-family-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Watts_family_murders",
+      "query": "What was the outcome of Chris Watts's criminal case?"
+    },
+    {
+      "id": "watts-family-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Watts_family_murders",
+      "query": "What was known about Chris Watts's actions before and after the murders?"
+    },
+
+    {
+      "id": "laci-peterson-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Laci_Peterson",
+      "query": "Who was Laci Peterson and what happened to her?"
+    },
+    {
+      "id": "laci-peterson-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Laci_Peterson",
+      "query": "What happened after Laci Peterson was reported missing?"
+    },
+    {
+      "id": "laci-peterson-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Laci_Peterson",
+      "query": "What evidence was used against Scott Peterson in the Laci Peterson case?"
+    },
+    {
+      "id": "laci-peterson-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Laci_Peterson",
+      "query": "How did investigators eventually connect Scott Peterson to Laci Peterson's disappearance?"
+    },
+    {
+      "id": "laci-peterson-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Laci_Peterson",
+      "query": "What was the outcome of Scott Peterson's trial?"
+    },
+    {
+      "id": "laci-peterson-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Laci_Peterson",
+      "query": "What happened to Scott Peterson after his conviction?"
+    },
+
+    {
+      "id": "ted-bundy-01",
+      "sourceUrl": "https://www.crimemuseum.org/crime-library/serial-killers/ted-bundy/",
+      "query": "Who was Ted Bundy and what crimes was he accused or convicted of?"
+    },
+    {
+      "id": "ted-bundy-02",
+      "sourceUrl": "https://www.crimemuseum.org/crime-library/serial-killers/ted-bundy/",
+      "query": "What was known about Ted Bundy's victims and the murders attributed to him?"
+    },
+    {
+      "id": "ted-bundy-03",
+      "sourceUrl": "https://www.crimemuseum.org/crime-library/serial-killers/ted-bundy/",
+      "query": "What evidence or investigative findings connected Ted Bundy to the murders?"
+    },
+    {
+      "id": "ted-bundy-04",
+      "sourceUrl": "https://www.crimemuseum.org/crime-library/serial-killers/ted-bundy/",
+      "query": "Where and when did Ted Bundy's known or suspected crimes take place?"
+    },
+    {
+      "id": "ted-bundy-05",
+      "sourceUrl": "https://www.crimemuseum.org/crime-library/serial-killers/ted-bundy/",
+      "query": "What was Ted Bundy's background and what was known about his behavior before the murders?"
+    },
+    {
+      "id": "ted-bundy-06",
+      "sourceUrl": "https://www.crimemuseum.org/crime-library/serial-killers/ted-bundy/",
+      "query": "How was Ted Bundy eventually identified, arrested, and prosecuted?"
+    },
+
+    {
+      "id": "jeffrey-dahmer-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Jeffrey_Dahmer",
+      "query": "Who was Jeffrey Dahmer and what crimes was he convicted of?"
+    },
+    {
+      "id": "jeffrey-dahmer-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Jeffrey_Dahmer",
+      "query": "Who were Jeffrey Dahmer's victims and what happened to them?"
+    },
+    {
+      "id": "jeffrey-dahmer-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Jeffrey_Dahmer",
+      "query": "What evidence or investigative findings connected Jeffrey Dahmer to the murders?"
+    },
+    {
+      "id": "jeffrey-dahmer-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Jeffrey_Dahmer",
+      "query": "Where and when did Jeffrey Dahmer's murders take place?"
+    },
+    {
+      "id": "jeffrey-dahmer-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Jeffrey_Dahmer",
+      "query": "What was Jeffrey Dahmer's background and what was known about his behavior before his arrest?"
+    },
+    {
+      "id": "jeffrey-dahmer-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Jeffrey_Dahmer",
+      "query": "How was Jeffrey Dahmer eventually identified, arrested, and prosecuted?"
+    },
+
+    {
+      "id": "nicole-brown-01",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Nicole_Brown_Simpson_and_Ron_Goldman",
+      "query": "Who were Nicole Brown Simpson and Ron Goldman and what happened to them?"
+    },
+    {
+      "id": "nicole-brown-02",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Nicole_Brown_Simpson_and_Ron_Goldman",
+      "query": "What was the relationship between Nicole Brown Simpson and O. J. Simpson before the murders?"
+    },
+    {
+      "id": "nicole-brown-03",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Nicole_Brown_Simpson_and_Ron_Goldman",
+      "query": "What evidence was presented against O. J. Simpson in the murders of Nicole Brown Simpson and Ron Goldman?"
+    },
+    {
+      "id": "nicole-brown-04",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Nicole_Brown_Simpson_and_Ron_Goldman",
+      "query": "Where and when were Nicole Brown Simpson and Ron Goldman murdered?"
+    },
+    {
+      "id": "nicole-brown-05",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Nicole_Brown_Simpson_and_Ron_Goldman",
+      "query": "What happened during the investigation into the murders of Nicole Brown Simpson and Ron Goldman?"
+    },
+    {
+      "id": "nicole-brown-06",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Murder_of_Nicole_Brown_Simpson_and_Ron_Goldman",
+      "query": "What was the outcome of O. J. Simpson's criminal trial for the murders?"
+    }
+  ]
+}

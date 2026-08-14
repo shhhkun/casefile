@@ -10,6 +10,7 @@ import { CACHE_TTL } from "./cache";
 
 interface CourtListenerResult {
   id: string;
+  cluster_id: string;
   caseName: string;
   court: string;
   dateFiled: string;
@@ -70,6 +71,7 @@ export async function searchCourtListener(
           .slice(0, 3)
           .map((r: CourtListenerResult) => ({
             id: r.id,
+            cluster_id: r.cluster_id,
             caseName: r.caseName,
             court: r.court,
             dateFiled: r.dateFiled,
@@ -103,6 +105,7 @@ export async function searchCourtListener(
           metadata: {
             court: r.court,
             dateFiled: r.dateFiled,
+            cluster_id: r.cluster_id ?? "",
           },
         });
       }

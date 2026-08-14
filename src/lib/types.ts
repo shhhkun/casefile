@@ -19,16 +19,9 @@ export interface ScoredCandidate {
   metadata?: Record<string, string>;
 }
 
-export interface ResolvedCase {
-  selectedCase: ScoredCandidate;
-  confidence: number;
-  reasoning: string;
-}
-
 export interface CaseAnalysis {
   extracted: ExtractedCase;
   originalExtracted: ExtractedCase;
-  resolved: ResolvedCase;
   candidates: ScoredCandidate[];
   wikiSummary: string | null;
   wikiUrl: string | null;
@@ -64,6 +57,7 @@ export interface CaseOverview {
 
 export interface CachedCourtListenerResult {
   id: string;
+  cluster_id: string;
   caseName: string;
   court: string;
   dateFiled: string;
