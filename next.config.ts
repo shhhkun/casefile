@@ -1,13 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Forces Turbopack to stop scanning both packages for binary modules at build-time
+  // Keep the native onnxruntime-node binary external so Turbopack doesn't
+  // try to bundle/scan it at build time.
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node"],
 
-  turbopack: {
-    resolveAlias: {
-      "onnxruntime-node": "onnxruntime-web",
-    },
+  // Force the native .so binary into the /api/analyze serverless function
+  // bundle. Without this, Vercel's file tracing omits the binary and the
+  // function fails at runtime with "libonnxruntime.so.1: cannot open shared
+  // object file".
+  outputFileTracingIncludes: {
+    "/api/analyze": ["./node_modules/onnxruntime-node/bin/**/*"],
   },
 };
 
