@@ -1,146 +1,149 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SourceError } from "@/lib/errors";
-import { sourceContent } from "@/lib/source";
-import { extractCase } from "@/lib/extract";
-import { searchCourtListener } from "@/lib/search";
-import { searchWikipedia } from "@/lib/wiki";
-import { CaseAnalysis } from "@/lib/types";
-import { fetchEvidence, SearchContext } from "@/lib/evidence";
-import { generateOverview } from "@/lib/overview";
 
+import type { CaseAnalysis } from "@/lib/types";
+import type { SearchContext } from "@/lib/evidence";
+
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL;
+
+/**
+ * POST /api/analyze
+ *
+ * Thin proxy to the Python FastAPI pipeline service.
+ * - When PYTHON_SERVICE_URL is set, forwards to Python (`POST /analyze`).
+ * - Falls back to the local TypeScript pipeline (reference implementation).
+ */
 export async function POST(req: NextRequest) {
   try {
-    const analyzeStart = performance.now();
+    const body = await req.json();
+    const { url, refinementNames = [], model } = body;
 
-    const {
-      url,
-      refinementNames = [],
-      model,
-    }: {
-      url: string;
-      refinementNames: string[];
-      model: string;
-    } = await req.json();
+    console.log("Analyze: received request body:", JSON.stringify(body));
 
     if (!url) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    console.log("Analyze: refinement names:", refinementNames);
-
-    const sourceStart = performance.now();
-    // Step 1: source content from URL (YouTube or article)
-    console.log("Analyze: extracting content from URL");
-    let content;
-    try {
-      content = await sourceContent(url);
-    } catch (err) {
-      console.error("Analyze: content extraction failed:", err);
-      if (err instanceof SourceError) {
-        return NextResponse.json(
-          { error: err.message },
-          { status: err.statusCode },
+    if (PYTHON_SERVICE_URL) {
+      try {
+        console.log(
+          "Analyze: running python pipeline, forwarding:",
+          JSON.stringify({ url, refinementNames, model }),
         );
+        const response = await fetch(`${PYTHON_SERVICE_URL}/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, refinementNames, model }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          return NextResponse.json(
+            {
+              error: errorData?.detail ?? errorData?.error ?? "Analysis failed",
+            },
+            { status: response.status },
+          );
+        }
+
+        return NextResponse.json(await response.json());
+      } catch (error) {
+        console.error("Analyze: Python proxy request failed:", error);
+        console.log("Analyze: falling back to local TypeScript pipeline");
+        return runLocalPipeline(url, refinementNames, model);
       }
-      return NextResponse.json(
-        { error: "Failed to extract content from URL" },
-        { status: 500 },
-      );
-    }
-    const sourceTime = performance.now() - sourceStart;
-
-    console.log("Analyze: source type:", content.sourceType);
-    console.log("Analyze: content length:", content.text.length);
-
-    const extractStart = performance.now();
-    // Step 2: extract case signals
-    const extracted = await extractCase(content.text, model, url);
-    const extractTime = performance.now() - extractStart;
-
-    console.log("Analyze: extracted:", JSON.stringify(extracted, null, 2));
-
-    const searchStart = performance.now();
-    // Step 3: parallel search
-    console.log("Analyze: running parallel search");
-    const [courtResults, wikiResult] = await Promise.all([
-      searchCourtListener(extracted, refinementNames),
-      searchWikipedia(extracted, refinementNames),
-    ]);
-    const searchTime = performance.now() - searchStart;
-
-    console.log("Analyze: court candidates:", courtResults.length);
-    console.log("Analyze: wiki candidates:", wikiResult.candidates.length);
-
-    // Aggregate and sort candidates for the UI and RAG ingestion.
-    const allCandidates = [...courtResults, ...wikiResult.candidates];
-    allCandidates.sort((a, b) => b.score - a.score);
-
-    console.log("Analyze: total candidates:", allCandidates.length);
-
-    // Preserve the #1 CourtListener and #1 Wikipedia search results as
-    // pipeline metadata for Evidence Assembly (RAG). CourtListener results
-    // are RAG ingestion candidates (legal source corpus for retrieval);
-    // Wikipedia results provide concise narrative/case context.
-    const searchContext: SearchContext = {};
-
-    if (courtResults.length > 0) {
-      const topCourt = courtResults[0];
-      searchContext.courtlistener = {
-        title: topCourt.title,
-        url: topCourt.url ?? "",
-        snippet: topCourt.snippet ?? "",
-        court: topCourt.metadata?.court,
-        dateFiled: topCourt.metadata?.dateFiled,
-        clusterId: topCourt.metadata?.cluster_id,
-      };
     }
 
-    if (wikiResult.candidates.length > 0 && wikiResult.summary) {
-      searchContext.wikipedia = {
-        title: wikiResult.candidates[0].title,
-        url: wikiResult.url ?? wikiResult.candidates[0].url ?? "",
-        summary: wikiResult.summary,
-      };
-    }
-
-    // Step 5: fetch evidence (includes RAG ingestion + retrieval)
-    const evidence = await fetchEvidence(
-      extracted,
-      content.text,
-      searchContext,
-    );
-
-    // Step 6: generate case overview
-    const overviewStart = performance.now();
-    const overview = await generateOverview(evidence, model, url);
-    const overviewTime = performance.now() - overviewStart;
-
-    const analysis: CaseAnalysis = {
-      extracted,
-      originalExtracted: extracted,
-      candidates: allCandidates,
-      wikiSummary: wikiResult.summary,
-      wikiUrl: wikiResult.url,
-      wikiThumbnail: wikiResult.thumbnail,
-      refinementNames,
-      sourceType: content.sourceType,
-      sourceTitle: content.title,
-      overview,
-    };
-
-    const analyzeEnd = performance.now();
-
-    console.log(`Source completed in ${sourceTime.toFixed(0)} ms`);
-    console.log(`Extract completed in ${extractTime.toFixed(0)} ms`);
-    console.log(`Search completed in ${searchTime.toFixed(0)} ms`);
-    console.log(`Overview completed in ${overviewTime.toFixed(0)} ms`);
-    console.log(
-      `Analyze (API) completed in ${(analyzeEnd - analyzeStart).toFixed(0)} ms`,
-    );
-
-    return NextResponse.json(analysis);
+    // console.log("Analyze: running local pipeline");
+    // return runLocalPipeline(url, refinementNames, model);
   } catch (error) {
     console.error("Analyze: unexpected error:", error);
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }
+}
+
+/** Run the local TypeScript analysis pipeline (reference implementation). */
+async function runLocalPipeline(
+  url: string,
+  refinementNames: string[],
+  model: string,
+) {
+  const { SourceError } = await import("@/lib/errors");
+  const { sourceContent } = await import("@/lib/source");
+  const { extractCase } = await import("@/lib/extract");
+  const { searchCourtListener } = await import("@/lib/search");
+  const { searchWikipedia } = await import("@/lib/wiki");
+  const { fetchEvidence } = await import("@/lib/evidence");
+  const { generateOverview } = await import("@/lib/overview");
+
+  // Step 1: source content from URL (YouTube or article)
+  let content;
+  try {
+    content = await sourceContent(url);
+  } catch (err) {
+    if (err instanceof SourceError) {
+      return NextResponse.json(
+        { error: err.message },
+        { status: err.statusCode },
+      );
+    }
+    return NextResponse.json(
+      { error: "Failed to extract content from URL" },
+      { status: 500 },
+    );
+  }
+
+  // Step 2: extract case signals
+  const extracted = await extractCase(content.text, model, url);
+
+  // Step 3: parallel search
+  const [courtResults, wikiResult] = await Promise.all([
+    searchCourtListener(extracted, refinementNames),
+    searchWikipedia(extracted, refinementNames),
+  ]);
+
+  const allCandidates = [...courtResults, ...wikiResult.candidates].sort(
+    (a, b) => b.score - a.score,
+  );
+
+  // Preserve #1 search results as SearchContext for RAG.
+  const searchContext: SearchContext = {};
+  if (courtResults.length > 0) {
+    const top = courtResults[0];
+    searchContext.courtlistener = {
+      title: top.title,
+      url: top.url ?? "",
+      snippet: top.snippet ?? "",
+      court: top.metadata?.court,
+      dateFiled: top.metadata?.dateFiled,
+      clusterId: top.metadata?.cluster_id,
+    };
+  }
+  if (wikiResult.candidates.length > 0 && wikiResult.summary) {
+    searchContext.wikipedia = {
+      title: wikiResult.candidates[0].title,
+      url: wikiResult.url ?? wikiResult.candidates[0].url ?? "",
+      summary: wikiResult.summary,
+    };
+  }
+
+  // Step 5: evidence assembly (includes RAG)
+  const evidence = await fetchEvidence(extracted, content.text, searchContext);
+
+  // Step 6: overview generation
+  const overview = await generateOverview(evidence, model, url);
+
+  const analysis: CaseAnalysis = {
+    extracted,
+    originalExtracted: extracted,
+    candidates: allCandidates,
+    wikiSummary: wikiResult.summary,
+    wikiUrl: wikiResult.url,
+    wikiThumbnail: wikiResult.thumbnail,
+    refinementNames,
+    sourceType: content.sourceType,
+    sourceTitle: content.title,
+    overview,
+  };
+
+  return NextResponse.json(analysis);
 }
