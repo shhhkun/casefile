@@ -189,6 +189,15 @@ The Python pipeline is exposed as an HTTP service. Options for deployment:
 
 **Recommended:** Option A (separate FastAPI service) for the initial migration, with Option B as a future consideration. The Python service exposes a single endpoint (e.g., `POST /analyze`) that mirrors the current `/api/analyze` contract.
 
+**Running the service locally** (use `python -m uvicorn` — the `uvicorn` CLI script may not be on `PATH` when installed into a user site-packages Scripts directory):
+
+```bash
+cd python
+python -m uvicorn casefile.api.server:app --reload
+```
+
+For a hosted web-service environment, the app binds to `0.0.0.0` and reads `$PORT` (see `python/casefile/api/server.py`).
+
 ### 2.4 How RAG/Database/Caching Fit In
 
 The existing architecture decisions (documented in `docs/rag/architecture.md` and `docs/rag/decisions.md`) remain valid:
@@ -220,59 +229,101 @@ The existing architecture decisions (documented in `docs/rag/architecture.md` an
 
 ## 3. Migration Phases
 
-### Phase 0 — Planning & Scaffolding (Current)
+### Phase 0 — Planning & Scaffolding (Complete)
 
 - [x] Document the migration plan (`docs/python/migration.md`).
-- [x] Create the `python/` scaffold with empty module files.
-- [ ] Define the Python package structure and dependency list.
-- [ ] Set up Python environment tooling (e.g., `pyproject.toml`, `requirements.txt`).
+- [x] Create the `python/` scaffold with module files mirroring the TypeScript pipeline.
+- [x] Define the Python package structure and dependency list (`python/pyproject.toml`).
+- [x] Set up Python environment tooling (`pyproject.toml`, `python/.env.example`).
+- [x] Add unit tests (`python/tests/`) for types, cache, queries, and the FastAPI service.
+- [x] Update `src/app/api/analyze/route.ts` to proxy to the Python service (with TypeScript fallback).
 
-### Phase 1 — Types & Core Infrastructure
+> **Note:** This scaffolding phase has produced a complete, runnable Python port of all five pipeline stages plus the RAG layer, exposed via a FastAPI service. The Next.js `/api/analyze` route now proxies to the Python service when `PYTHON_SERVICE_URL` is set, falling back to the TypeScript reference implementation otherwise. See `python/pyproject.toml` for the full dependency list and `python/.env.example` for required environment variables.
 
-- Port `types.ts` → `python/casefile/types.py` (Pydantic models).
-- Port `errors.ts` → `python/casefile/errors.py`.
-- Port `cache.ts`, `redis.ts`, `hash.ts` → `python/casefile/cache.py`.
-- Port `rag/db.ts` → `python/casefile/rag/db.py`.
-- **Verification:** Unit tests for types, errors, and cache key generation.
+### Phase 1 — Types & Core Infrastructure (Complete)
 
-### Phase 2 — Source Extraction
+- [x] Port `types.ts` → `python/casefile/types.py` (Pydantic models).
+- [x] Port `errors.ts` → `python/casefile/errors.py`.
+- [x] Port `cache.ts`, `redis.ts`, `hash.ts` → `python/casefile/cache.py`.
+- [x] Port `rag/db.ts` → `python/casefile/rag/db.py`.
+- [x] **Verification:** Unit tests for types, errors, and cache key generation.
 
-- Port `source.ts`, `transcript.ts`, `article.ts` → `python/casefile/source/`.
-- **Verification:** Extract content from a known YouTube URL and article URL; compare output with TypeScript reference.
+### Phase 2 — Source Extraction (Complete)
 
-### Phase 3 — Metadata Extraction
+- [x] Port `source.ts`, `transcript.ts`, `article.ts` → `python/casefile/source/`.
+- [x] **Verification:** Extract content from a known YouTube URL and article URL; compare output with TypeScript reference.
 
-- Port `extract.ts` → `python/casefile/extract/`.
-- **Verification:** Run extraction on known transcripts; compare `ExtractedCase` JSON with TypeScript reference.
+### Phase 3 — Metadata Extraction (Complete)
 
-### Phase 4 — External Search
+- [x] Port `extract.ts` → `python/casefile/extract/`.
+- [x] **Verification:** Run extraction on known transcripts; compare `ExtractedCase` JSON with TypeScript reference.
 
-- Port `queries.ts`, `search.ts`, `wiki.ts` → `python/casefile/search/`.
-- **Verification:** Run CourtListener and Wikipedia searches; compare candidates and scores with TypeScript reference.
+### Phase 4 — External Search (Complete)
 
-### Phase 5 — RAG Layer
+- [x] Port `queries.ts`, `search.ts`, `wiki.ts` → `python/casefile/search/`.
+- [x] **Verification:** Run CourtListener and Wikipedia searches; compare candidates and scores with TypeScript reference.
 
-- Port `rag/chunk.ts`, `rag/embed.ts`, `rag/fetch.ts`, `rag/ingest.ts`, `rag/retrieve.ts`, `rag/cleanup.ts` → `python/casefile/rag/`.
-- **Verification:** Run the RAG demo equivalent; verify chunking, embedding, ingestion, and retrieval against the existing Supabase schema.
+### Phase 5 — RAG Layer (Complete)
 
-### Phase 6 — Evidence Assembly & Overview
+- [x] Port `rag/chunk.ts`, `rag/embed.ts`, `rag/fetch.ts`, `rag/ingest.ts`, `rag/retrieve.ts`, `rag/cleanup.ts` → `python/casefile/rag/`.
+- [x] **Verification:** Run the RAG demo equivalent; verify chunking, embedding, ingestion, and retrieval against the existing Supabase schema.
 
-- Port `evidence.ts` → `python/casefile/evidence/`.
-- Port `overview.ts` → `python/casefile/overview/`.
-- **Verification:** Run the full pipeline end-to-end; compare `CaseAnalysis` JSON with TypeScript reference.
+### Phase 6 — Evidence Assembly & Overview (Complete)
 
-### Phase 7 — Service Integration
+- [x] Port `evidence.ts` → `python/casefile/evidence/`.
+- [x] Port `overview.ts` → `python/casefile/overview/`.
+- [x] **Verification:** Run the full pipeline end-to-end; compare `CaseAnalysis` JSON with TypeScript reference.
 
-- Create the FastAPI service (`python/casefile/api/server.py`).
-- Update `src/app/api/analyze/route.ts` to proxy to the Python service.
-- **Verification:** End-to-end test through the Next.js UI.
+### Phase 7 — Service Integration (Complete)
 
-### Phase 8 — Cutover & Cleanup
+- [x] Create the FastAPI service (`python/casefile/api/server.py`).
+- [x] Update `src/app/api/analyze/route.ts` to proxy to the Python service.
+- [x] **Verification:** End-to-end test through the Next.js UI.
 
-- Feature-flag the Python pipeline behind an environment variable.
-- Run parallel comparison (TypeScript vs. Python) on a test corpus.
-- Once Python output matches TypeScript reference, switch the default to Python.
-- Retire the TypeScript pipeline modules (keep as reference).
+### Phase 8 — Cutover & Cleanup (Deferred — Fallback Retained)
+
+- [ ] Feature-flag the Python pipeline behind an environment variable.
+- [ ] Run parallel comparison (TypeScript vs. Python) on a test corpus.
+- [ ] Once Python output matches TypeScript reference, switch the default to Python.
+- [ ] Retire the TypeScript pipeline modules (keep as reference).
+
+> **Note:** The Python pipeline is fully functional and verified end-to-end. However, the TypeScript fallback is intentionally retained as the default when `PYTHON_SERVICE_URL` is not set. The cutover is deferred until a parallel comparison on a test corpus confirms output parity.
+
+### Known Issues & Fixes (Debugging Session)
+
+The following issues were found and fixed while bringing the Python pipeline to a working state. They are documented here for reference.
+
+#### 1. Upstash Redis `get()` returns raw JSON strings (not auto-decoded)
+
+**Symptom:** `AttributeError: 'str' object has no attribute 'get'` in `source.py` on cache HIT.
+
+**Root cause:** The TypeScript `@upstash/redis` client auto-decodes JSON on `get()`, but the Python `upstash-redis` client returns the raw string. The `Cache.get()` method in `python/casefile/cache.py` incorrectly assumed auto-decoding.
+
+**Fix:** Explicitly `json.loads()` the string value in `Cache.get()`. This affects all cache consumers (source, extract, search, overview).
+
+#### 2. `UnboundLocalError: cannot access local variable '_pool'`
+
+**Symptom:** `UnboundLocalError: cannot access local variable '_pool' where it is not associated with a value` in `rag/db.py`.
+
+**Root cause:** `_get_connection()` assigns to `_pool`, making Python treat it as a local variable. The `if _pool is None` check then fails because the local hasn't been assigned yet.
+
+**Fix:** Added `global _pool` at the top of `_get_connection()`.
+
+#### 3. `PoolClosed: the pool 'pool-1' is not open yet`
+
+**Symptom:** `PoolClosed` error when querying the database.
+
+**Root cause:** The `psycopg_pool.ConnectionPool` was created with `open=False` but never explicitly opened. The TS reference uses `new Pool(...)` which auto-opens.
+
+**Fix:** Call `pool.open()` after creating the pool.
+
+#### 4. `invalid URI query parameter: "pgbouncer"`
+
+**Symptom:** `psycopg` rejects the Supabase `DATABASE_URL` with `invalid URI query parameter: "pgbouncer"`.
+
+**Root cause:** The Supabase `DATABASE_URL` includes `?pgbouncer=true`, which the Node.js `pg` client accepts but `psycopg` does not understand.
+
+**Fix:** Strip unsupported query parameters from the connection string in `psycopg_pool_from_env()`, keeping only psycopg-compatible ones (`sslmode`, `ssl`, `connect_timeout`).
 
 ---
 
