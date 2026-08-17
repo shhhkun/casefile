@@ -9,6 +9,7 @@ additive + non-fatal if RAG fails.
 import json
 import logging
 from typing import Any, Optional
+import time
 
 from ..rag import (
     delete_expired_sources,
@@ -167,6 +168,7 @@ def fetch_evidence(
 
     # RAG: ingest the full underlying documents of the top search results and
     # retrieve relevant chunks. Additive and non-fatal.
+    rag_start = time.perf_counter()
     try:
         delete_expired_sources()
 
@@ -216,4 +218,8 @@ def fetch_evidence(
     except Exception as err:
         logger.error("RAG retrieval failed: %s", err)
 
+    logger.info(
+        "RAG: total evidence/RAG time %.2fs",
+        time.perf_counter() - rag_start,
+    )
     return evidence
