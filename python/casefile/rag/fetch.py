@@ -31,10 +31,13 @@ def html_to_text(html: str) -> str:
             for element in soup.select(selector):
                 element.decompose()
 
-        body = soup.find("body")
-        if body is None:
-            return ""
-        return " ".join(body.get_text().split())
+        # body = soup.find("body")
+        # if body is None:
+        #     return ""
+        # return " ".join(body.get_text().split())
+
+        return " ".join(soup.get_text().split())
+
     except ImportError:
         # Fallback: strip tags with regex (best effort).
         text = re.sub(r"<[^>]+>", " ", html)
