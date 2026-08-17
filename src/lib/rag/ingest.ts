@@ -1,4 +1,4 @@
-import { query, queryOne } from "./db";
+import { queryOne, withTransaction } from "./db";
 import { chunkText, ChunkOptions } from "./chunk";
 import { embedTexts, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "./embed";
 import { IngestInput, IngestResult } from "./types";
@@ -82,65 +82,92 @@ export async function ingestSource(
     );
   }
 
-  // Step 4: persist — source, chunks, and embeddings in a transaction.
+  // Step 4: persist — source, chunks, and embeddings in a single transaction.
   const expiresAt =
     input.expiresAt ?? new Date(Date.now() + DEFAULT_RAG_TTL_DAYS * 86400000);
 
-  const source = await queryOne<{ id: string }>(
-    `INSERT INTO rag_sources (url, source_type, title, source_text, extracted_meta, expires_at)
-     VALUES ($1, $2, $3, $4, $5::jsonb, $6)
-     RETURNING id`,
-    [
-      input.url,
-      input.sourceType,
-      input.title ?? null,
-      input.sourceText,
-      input.extractedMeta ? JSON.stringify(input.extractedMeta) : null,
-      expiresAt.toISOString(),
-    ],
-  );
-
-  if (!source) {
-    throw new Error(`Failed to insert source: ${input.url}`);
-  }
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-
-    const chunkRow = await queryOne<{ id: string }>(
-      `INSERT INTO rag_chunks (source_id, chunk_index, text, char_start, char_end, token_count)
-       VALUES ($1, $2, $3, $4, $5, $6)
+  return withTransaction(async (tq, tq1) => {
+    const source = await tq1<{ id: string }>(
+      `INSERT INTO rag_sources (url, source_type, title, source_text, extracted_meta, expires_at)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6)
        RETURNING id`,
       [
-        source.id,
-        chunk.chunkIndex,
-        chunk.text,
-        chunk.charStart,
-        chunk.charEnd,
-        chunk.tokenCount,
+        input.url,
+        input.sourceType,
+        input.title ?? null,
+        input.sourceText,
+        input.extractedMeta ? JSON.stringify(input.extractedMeta) : null,
+        expiresAt.toISOString(),
       ],
     );
 
-    if (!chunkRow) {
-      throw new Error(
-        `Failed to insert chunk ${chunk.chunkIndex} for source: ${input.url}`,
+    if (!source) {
+      throw new Error(`Failed to insert source: ${input.url}`);
+    }
+
+    // Batch-insert all chunks in a single multi-row INSERT.
+    const chunkValues = chunks
+      .map(
+        (_, i) =>
+          `($1, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5}, $${i * 5 + 6})`,
+      )
+      .join(", ");
+
+    const chunkParams: unknown[] = [source.id];
+    for (const c of chunks) {
+      chunkParams.push(
+        c.chunkIndex,
+        c.text,
+        c.charStart,
+        c.charEnd,
+        c.tokenCount,
       );
     }
 
-    // pgvector expects the vector literal as a string like '[0.1,0.2,...]'.
-    const vectorLiteral =
-      "[" + embeddings[i].map((v) => v.toString()).join(",") + "]";
-
-    await query(
-      `INSERT INTO rag_embeddings (chunk_id, model, dimensions, vector)
-       VALUES ($1, $2, $3, $4::vector)`,
-      [chunkRow.id, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, vectorLiteral],
+    const chunkRows = await tq<{ id: string; chunk_index: number }>(
+      `INSERT INTO rag_chunks (source_id, chunk_index, text, char_start, char_end, token_count)
+       VALUES ${chunkValues}
+       RETURNING id, chunk_index`,
+      chunkParams,
     );
-  }
 
-  return {
-    sourceId: source.id,
-    chunkCount: chunks.length,
-    reused: false,
-  };
+    if (chunkRows.length !== chunks.length) {
+      throw new Error(
+        `Inserted ${chunkRows.length} chunks, expected ${chunks.length} for source: ${input.url}`,
+      );
+    }
+
+    // Batch-insert all embeddings in a single multi-row INSERT.
+    const embedValues = chunkRows
+      .map(
+        (_, i) =>
+          `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}::vector)`,
+      )
+      .join(", ");
+
+    const embedParams: unknown[] = [];
+    for (let i = 0; i < chunkRows.length; i++) {
+      // pgvector expects the vector literal as a string like '[0.1,0.2,...]'.
+      const vectorLiteral =
+        "[" + embeddings[i].map((v) => v.toString()).join(",") + "]";
+      embedParams.push(
+        chunkRows[i].id,
+        EMBEDDING_MODEL,
+        EMBEDDING_DIMENSIONS,
+        vectorLiteral,
+      );
+    }
+
+    await tq(
+      `INSERT INTO rag_embeddings (chunk_id, model, dimensions, vector)
+       VALUES ${embedValues}`,
+      embedParams,
+    );
+
+    return {
+      sourceId: source.id,
+      chunkCount: chunks.length,
+      reused: false,
+    };
+  });
 }
