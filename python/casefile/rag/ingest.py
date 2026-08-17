@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .chunk import chunk_text
-from .db import execute, query, query_one
+from .db import query_one, with_transaction
 from .embed import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, embed_texts
 from .types import IngestInput, IngestResult
 
@@ -86,69 +86,76 @@ def ingest_source(input: IngestInput) -> IngestResult:
             f"Embedding count ({len(embeddings)}) does not match chunk count ({len(chunks)})"
         )
 
-    # Step 4: persist — source, chunks, and embeddings.
+    # Step 4: persist — source, chunks, and embeddings in a single transaction.
     expires_at = input.expiresAt or (
         datetime.now(timezone.utc) + timedelta(days=DEFAULT_RAG_TTL_DAYS)
     ).isoformat()
 
-    source = query_one(
-        """INSERT INTO rag_sources (url, source_type, title, source_text, extracted_meta, expires_at)
-           VALUES (%s, %s, %s, %s, %s::jsonb, %s)
-           RETURNING id""",
-        [
-            input.url,
-            input.sourceType,
-            input.title,
-            input.sourceText,
-            (
-                __import__("json").dumps(input.extractedMeta)
-                if input.extractedMeta
-                else None
-            ),
-            expires_at,
-        ],
-    )
-
-    if not source:
-        raise RuntimeError(f"Failed to insert source: {input.url}")
-
-    for i, chunk in enumerate(chunks):
-        chunk_row = query_one(
-            """INSERT INTO rag_chunks (source_id, chunk_index, text, char_start, char_end, token_count)
-               VALUES (%s, %s, %s, %s, %s, %s)
+    def _persist(tq, tq1, te) -> IngestResult:
+        source = tq1(
+            """INSERT INTO rag_sources (url, source_type, title, source_text, extracted_meta, expires_at)
+               VALUES (%s, %s, %s, %s, %s::jsonb, %s)
                RETURNING id""",
             [
-                source["id"],
-                chunk["chunkIndex"],
-                chunk["text"],
-                chunk["charStart"],
-                chunk["charEnd"],
-                chunk["tokenCount"],
+                input.url,
+                input.sourceType,
+                input.title,
+                input.sourceText,
+                (
+                    __import__("json").dumps(input.extractedMeta)
+                    if input.extractedMeta
+                    else None
+                ),
+                expires_at,
             ],
         )
 
-        if not chunk_row:
-            raise RuntimeError(
-                f"Failed to insert chunk {chunk['chunkIndex']} for source: {input.url}"
+        if not source:
+            raise RuntimeError(f"Failed to insert source: {input.url}")
+
+        # Insert chunks and embeddings inside the transaction. Single-row
+        # INSERT ... RETURNING is reliable with psycopg v3 (multi-row VALUES
+        # + RETURNING can fail with "last operation didn't produce records").
+        chunk_ids: list[str] = []
+        for c in chunks:
+            chunk_row = tq1(
+                """INSERT INTO rag_chunks (source_id, chunk_index, text, char_start, char_end, token_count)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   RETURNING id""",
+                [
+                    source["id"],
+                    c["chunkIndex"],
+                    c["text"],
+                    c["charStart"],
+                    c["charEnd"],
+                    c["tokenCount"],
+                ],
+            )
+            if not chunk_row:
+                raise RuntimeError(
+                    f"Failed to insert chunk {c['chunkIndex']} for source: {input.url}"
+                )
+            chunk_ids.append(str(chunk_row["id"]))
+
+        for i, chunk_id in enumerate(chunk_ids):
+            te(
+                """INSERT INTO rag_embeddings (chunk_id, model, dimensions, vector)
+                   VALUES (%s, %s, %s, %s::vector)""",
+                [
+                    chunk_id,
+                    EMBEDDING_MODEL,
+                    EMBEDDING_DIMENSIONS,
+                    vector_literal(embeddings[i]),
+                ],
             )
 
-        # pgvector expects the vector literal as a string like '[0.1,0.2,...]'.
-        execute(
-            """INSERT INTO rag_embeddings (chunk_id, model, dimensions, vector)
-               VALUES (%s, %s, %s, %s::vector)""",
-            [
-                chunk_row["id"],
-                EMBEDDING_MODEL,
-                EMBEDDING_DIMENSIONS,
-                vector_literal(embeddings[i]),
-            ],
+        return IngestResult(
+            sourceId=str(source["id"]),
+            chunkCount=len(chunks),
+            reused=False,
         )
 
-    return IngestResult(
-        sourceId=str(source["id"]),
-        chunkCount=len(chunks),
-        reused=False,
-    )
+    return with_transaction(_persist)
 
 
 # In-memory check cache for tests/simulation: not used by the pipeline itself.
