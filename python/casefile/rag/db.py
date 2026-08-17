@@ -61,7 +61,7 @@ def psycopg_pool_from_env(connection_string: str) -> Any:
         (parts.scheme, parts.netloc, parts.path, urlencode(query_params), parts.fragment)
     )
 
-    pool = ConnectionPool(conninfo=clean_url, min_size=1, max_size=5, open=False)
+    pool = ConnectionPool(conninfo=clean_url, min_size=1, max_size=5, kwargs={"prepare_threshold": None}, open=False)
     pool.open()
     return pool
 

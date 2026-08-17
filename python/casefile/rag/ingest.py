@@ -67,7 +67,7 @@ def ingest_source(input: IngestInput) -> IngestResult:
     existing = find_reusable_source(input.url)
     if existing:
         return IngestResult(
-            sourceId=existing["sourceId"],
+            sourceId=str(existing["sourceId"]),
             chunkCount=existing["chunkCount"],
             reused=True,
         )
@@ -145,7 +145,7 @@ def ingest_source(input: IngestInput) -> IngestResult:
         )
 
     return IngestResult(
-        sourceId=source["id"],
+        sourceId=str(source["id"]),
         chunkCount=len(chunks),
         reused=False,
     )
