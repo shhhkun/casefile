@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 WIKI_SEARCH_URL = "https://en.wikipedia.org/w/api.php"
 WIKI_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-
+WIKI_USER_AGENT = "CaseFile/1.0 (https://github.com/shhhkun/casefile)"
 
 def _calculate_wiki_score(
     title: str,
@@ -79,6 +79,7 @@ def search_wikipedia(
         search_res = httpx.get(
             WIKI_SEARCH_URL,
             params=search_params,
+            headers={"User-Agent": WIKI_USER_AGENT},
             timeout=20.0,
         )
     except Exception as err:
@@ -121,7 +122,7 @@ def search_wikipedia(
     # Fetch summary for the top result only.
     try:
         top_title = _quote(search_results[0].get("title") or "")
-        summary_res = httpx.get(f"{WIKI_SUMMARY_URL}{top_title}", timeout=20.0)
+        summary_res = httpx.get(f"{WIKI_SUMMARY_URL}{top_title}", headers={"User-Agent": WIKI_USER_AGENT}, timeout=20.0)
     except Exception as err:
         logger.error("Wikipedia summary fetch failed: %s", err)
         return CachedWikiResult(

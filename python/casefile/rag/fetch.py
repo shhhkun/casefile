@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 COURTLISTENER_API_BASE = "https://www.courtlistener.com/api/rest/v4"
 WIKI_WITH_HTML_URL = "https://en.wikipedia.org/w/rest.php/v1/page"
-
+WIKI_USER_AGENT = "CaseFile/1.0 (https://github.com/shhhkun/casefile)"
 
 def html_to_text(html: str) -> str:
     """Convert HTML to readable text, removing noise elements."""
@@ -143,11 +143,16 @@ def fetch_wikipedia_source(title: str, url: str) -> FetchedSource | None:
         encoded_title = quote(title, safe="")
 
         res = httpx.get(
-            f"{WIKI_WITH_HTML_URL}/{encoded_title}/with_html",
-            headers={"Accept": "text/html"},
-            timeout=20.0,
-        )
-
+                f"{WIKI_WITH_HTML_URL}/{encoded_title}/with_html",
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": WIKI_USER_AGENT,
+                },
+                params={"redirect": "yes"},
+                follow_redirects=True,
+                timeout=20.0,
+                )
+                
         if res.status_code >= 400:
             logger.error(
                 "WP: with_html fetch failed (%d) for %s", res.status_code, title
