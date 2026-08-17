@@ -90,6 +90,46 @@ def execute(text: str, params: Optional[list[Any]] = None) -> None:
             cur.execute(text, params or [])
 
 
+def with_transaction(fn):
+    """Run a callback inside a database transaction.
+
+    The callback receives transaction-scoped helpers that share the same
+    connection and cursor (so all statements run in one transaction):
+      - `tq(text, params)` -> list[dict]: runs a query that returns rows
+        (SELECT, or INSERT ... RETURNING).
+      - `tq1(text, params)` -> Optional[dict]: first row of tq, or None.
+      - `te(text, params)` -> None: executes an INSERT/UPDATE/DELETE that
+        produces NO rows (no RETURNING clause); does NOT call fetchall.
+
+    Commits on success, rolls back on error (and re-raises).
+    """
+    with _get_connection() as conn:
+        try:
+            conn.execute("BEGIN")
+            with conn.cursor(row_factory=dict_row) as cur:
+                def tq(text: str, params: Optional[list[Any]] = None) -> list[dict[str, Any]]:
+                    cur.execute(text, params or [])
+                    rows = cur.fetchall()
+                    return [dict(r) for r in rows]
+
+                def tq1(text: str, params: Optional[list[Any]] = None) -> Optional[dict[str, Any]]:
+                    rows = tq(text, params)
+                    return rows[0] if rows else None
+
+                def te(text: str, params: Optional[list[Any]] = None) -> None:
+                    cur.execute(text, params or [])
+
+                result = fn(tq, tq1, te)
+            conn.execute("COMMIT")
+            return result
+        except Exception:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise
+
+
 def close_pool() -> None:
     """Close the pool (call at process exit)."""
     global _pool
