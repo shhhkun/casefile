@@ -106,17 +106,17 @@ Runs two searches concurrently via `Promise.all`:
 
 ### 1.3 RAG Layer (`src/lib/rag/`)
 
-| File          | Purpose                                                                                                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `types.ts`    | RAG data types (`RagSource`, `RagChunk`, `RagEmbedding`, `RetrievedChunk`, `IngestInput`, `IngestResult`, `FetchedSource`)                                                           |
-| `db.ts`       | Lazy pg Pool for Supabase Postgres + pgvector (`DATABASE_URL` from `.env`); `query`/`queryOne` helpers                                                                               |
-| `chunk.ts`    | Token-based chunking with overlap (`chunkText`; default 300 tokens / 50 overlap)                                                                                                     |
-| `embed.ts`    | Transformers.js local embeddings (`embedText` / `embedTexts`; module-level model singleton; `all-MiniLM-L6-v2`, 384-dim)                                                             |
-| `fetch.ts`    | External full-document fetching: CourtListener cluster → opinion (`html_with_citations`) and Wikipedia full article (`with_html`); normalizes HTML → readable text (`FetchedSource`) |
-| `ingest.ts`   | Ensures a URL's content is chunked + embedded and stored in Supabase/pgvector; `findReusableSource` checks for an existing unexpired source before chunking/embedding                |
-| `retrieve.ts` | pgvector similarity query (`retrieveChunks`); current-source priority + cross-source supplement                                                                                      |
-| `cleanup.ts`  | Deletes expired sources (`ON DELETE CASCADE` removes chunks/embeddings)                                                                                                              |
-| `index.ts`    | Barrel export for the RAG module                                                                                                                                                     |
+| File          | Purpose                                                                                                                                                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `types.ts`    | RAG data types (`RagSource`, `RagChunk`, `RagEmbedding`, `RetrievedChunk`, `IngestInput`, `IngestResult`, `FetchedSource`)                                                                                                                    |
+| `db.ts`       | Lazy pg Pool for Supabase Postgres + pgvector (`DATABASE_URL` from `.env`); `query`/`queryOne` helpers; `withTransaction` for atomic multi-statement transactions                                                                             |
+| `chunk.ts`    | Token-based chunking with overlap (`chunkText`; default 300 tokens / 50 overlap)                                                                                                                                                              |
+| `embed.ts`    | Transformers.js local embeddings (`embedText` / `embedTexts`; module-level model singleton; `all-MiniLM-L6-v2`, 384-dim). `EMBEDDING_MODEL` is the canonical DB-storage string; `EMBEDDING_MODEL_LOAD_ID` is the HF repo used to load weights |
+| `fetch.ts`    | External full-document fetching: CourtListener cluster → opinion (`html_with_citations`) and Wikipedia full article (`with_html`); normalizes HTML → readable text (`FetchedSource`)                                                          |
+| `ingest.ts`   | Ensures a URL's content is chunked + embedded and stored in Supabase/pgvector; `findReusableSource` checks for an existing unexpired source before chunking/embedding. Batched multi-row INSERTs wrapped in a single `withTransaction`        |
+| `retrieve.ts` | pgvector similarity query (`retrieveChunks`); current-source priority + cross-source supplement                                                                                                                                               |
+| `cleanup.ts`  | Deletes expired sources (`ON DELETE CASCADE` removes chunks/embeddings)                                                                                                                                                                       |
+| `index.ts`    | Barrel export for the RAG module                                                                                                                                                                                                              |
 
 ### 1.4 Supporting Infrastructure
 
@@ -324,6 +324,48 @@ The following issues were found and fixed while bringing the Python pipeline to 
 **Root cause:** The Supabase `DATABASE_URL` includes `?pgbouncer=true`, which the Node.js `pg` client accepts but `psycopg` does not understand.
 
 **Fix:** Strip unsupported query parameters from the connection string in `psycopg_pool_from_env()`, keeping only psycopg-compatible ones (`sslmode`, `ssl`, `connect_timeout`).
+
+#### 5. Cross-language RAG retrieval returns 0 chunks (embedding model string mismatch)
+
+**Symptom:** TypeScript ingests a source, Python cannot retrieve it (0 chunks), and vice versa. Both implementations recognize the chunks but the retrieval filter matches nothing.
+
+**Root cause:** The `EMBEDDING_MODEL` string differed between implementations — TS used `"Xenova/all-MiniLM-L6-v2"` while Python used `"sentence-transformers/all-MiniLM-L6-v2"`. Both use the same underlying model weights, but the `model` column in `rag_embeddings` stored the implementation-specific string. Retrieval filters on `e.model = <EMBEDDING_MODEL>`, so cross-language retrieval matched nothing.
+
+**Fix:** Unified `EMBEDDING_MODEL` to the canonical `"all-MiniLM-L6-v2"` in both `src/lib/rag/embed.ts` and `python/casefile/rag/embed.py`. Separated the model-loading ID from the DB-storage ID:
+
+- `EMBEDDING_MODEL_LOAD_ID` — the HF repo used to load weights (`Xenova/all-MiniLM-L6-v2` for TS, `sentence-transformers/all-MiniLM-L6-v2` for Python)
+- `EMBEDDING_MODEL` — the canonical string stored in `rag_embeddings.model` (same across both)
+
+#### 6. `'_GeneratorContextManager' object has no attribute 'close'`
+
+**Symptom:** `AttributeError: '_GeneratorContextManager' object has no attribute 'close'` during RAG ingestion.
+
+**Root cause:** `_get_connection()` in `python/casefile/rag/db.py` returns a **context manager** from `psycopg_pool`, not the raw connection. The `with_transaction()` helper was calling `.close()` directly on the context manager.
+
+**Fix:** Updated `with_transaction()` to use the same `with _get_connection() as conn:` pattern that `query()`, `query_one()`, and `execute()` use. The `with` block properly enters the pool's context manager to check the connection out (and back into) the pool.
+
+#### 7. `the last operation didn't produce records (command status: INSERT 0 1)`
+
+**Symptom:** `psycopg.ProgrammingError: the last operation didn't produce records` during RAG ingestion of `rag_embeddings`.
+
+**Root cause:** The transaction-scoped `tq()` helper in `with_transaction()` **unconditionally calls `fetchall()`** after every `cur.execute()`. The `rag_embeddings` INSERT has no `RETURNING` clause, so calling `fetchall()` on a statement that produces no rows raises this error.
+
+**Fix:** Added a third transaction-scoped helper `te()` (execute) to `with_transaction()` that runs INSERT/UPDATE/DELETE statements without calling `fetchall()`. Updated `ingest.py` to use `te()` for the `rag_embeddings` INSERT (which has no `RETURNING`), while `tq()`/`tq1()` continue to be used for queries that return rows (source and chunk INSERT ... RETURNING).
+
+#### 8. RAG ingestion dedup URL mismatch (CourtListener)
+
+**Symptom:** CourtListener sources were re-fetched and re-ingested on every request even when already in the knowledge base.
+
+**Root cause:** `findReusableSource()` was checked against the **search result URL** but `ingestSource()` stored the **fetched source URL** (which can differ for CourtListener — the search result URL vs. the resolved opinion URL).
+
+**Fix:** Added a second dedup check in `ingestExternalSource()` (both `src/lib/evidence.ts` and `python/casefile/evidence/evidence.py`) using the actual fetched `source.url` to avoid unnecessary external fetches and re-ingestion.
+
+#### 9. RAG ingestion runtime optimization (batched inserts + transaction)
+
+**Change:** Replaced the per-chunk insert loop (2N+1 DB round trips) with batched multi-row INSERTs wrapped in a single transaction:
+
+- **TypeScript (`src/lib/rag/ingest.ts`):** Multi-row `INSERT ... VALUES (...), (...)` for all chunks and all embeddings, wrapped in `withTransaction()` from `src/lib/rag/db.ts`. Reduces round trips from 2N+1 to ~3.
+- **Python (`python/casefile/rag/ingest.py`):** Single-row `INSERT ... RETURNING` per chunk (reliable with psycopg v3) and `te()` for embeddings, all inside `with_transaction()`. Preserves atomicity and reduces per-statement commit overhead.
 
 ---
 
