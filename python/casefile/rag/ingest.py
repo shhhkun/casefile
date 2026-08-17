@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .chunk import chunk_text
-from .db import query, query_one
+from .db import execute, query, query_one
 from .embed import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, embed_texts
 from .types import IngestInput, IngestResult
 
@@ -133,7 +133,7 @@ def ingest_source(input: IngestInput) -> IngestResult:
             )
 
         # pgvector expects the vector literal as a string like '[0.1,0.2,...]'.
-        query(
+        execute(
             """INSERT INTO rag_embeddings (chunk_id, model, dimensions, vector)
                VALUES (%s, %s, %s, %s::vector)""",
             [
