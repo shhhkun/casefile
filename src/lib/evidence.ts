@@ -116,6 +116,8 @@ async function ingestExternalSource(
   fetchSource: () => Promise<FetchedSource | null>,
   extractedMeta: Record<string, unknown>,
 ): Promise<void> {
+  // Cheap DB check first: if the search-result URL is already ingested,
+  // skip the expensive external fetch entirely.
   const existing = await findReusableSource(sourceUrl);
 
   if (existing) {
@@ -132,6 +134,20 @@ async function ingestExternalSource(
   if (!source) {
     console.error(
       `RAG: ${label} source unavailable for ${sourceUrl}; skipping`,
+    );
+    return;
+  }
+
+  // The fetched source may have a different URL than the search result
+  // (e.g. CourtListener search URL vs. the resolved opinion URL). Check
+  // again with the actual source URL to avoid re-ingesting an existing
+  // source under a different key.
+  const existingBySourceUrl = await findReusableSource(source.url);
+
+  if (existingBySourceUrl) {
+    console.log(
+      `RAG: ${label} source reused — ${source.url} ` +
+        `(${existingBySourceUrl.chunkCount} chunks)`,
     );
     return;
   }
