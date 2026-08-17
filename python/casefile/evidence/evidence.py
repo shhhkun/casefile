@@ -87,6 +87,8 @@ def _ingest_external_source(
     extracted_meta: dict[str, Any],
 ) -> None:
     """Ingest an external source, reusing existing unexpired sources."""
+    # Cheap DB check first: if the search-result URL is already ingested,
+    # skip the expensive external fetch entirely.
     existing = find_reusable_source(source_url)
 
     if existing:
@@ -103,6 +105,21 @@ def _ingest_external_source(
 
     if not source:
         logger.error("RAG: %s source unavailable for %s; skipping", label, source_url)
+        return
+
+    # The fetched source may have a different URL than the search result
+    # (e.g. CourtListener search URL vs. the resolved opinion URL). Check
+    # again with the actual source URL to avoid re-ingesting an existing
+    # source under a different key.
+    existing_by_source_url = find_reusable_source(source.url)
+
+    if existing_by_source_url:
+        logger.info(
+            "RAG: %s source reused - %s (%d chunks)",
+            label,
+            source.url,
+            existing_by_source_url["chunkCount"],
+        )
         return
 
     try:
