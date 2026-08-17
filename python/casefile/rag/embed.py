@@ -9,7 +9,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# Model ID used to *load* the weights from Hugging Face Hub
+# (sentence-transformers resolves this repo).
+EMBEDDING_MODEL_LOAD_ID = "sentence-transformers/all-MiniLM-L6-v2"
+
+# Canonical model identifier stored in rag_embeddings.model and used in
+# retrieval filters. This is the SAME string across TS and Python so
+# cross-language ingestion/retrieval works. The model weights are identical
+# (all-MiniLM-L6-v2, 384-dim) — only the module-loading ID differs per.
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 EMBEDDING_DIMENSIONS = 384
 
 _model = None
@@ -21,7 +29,7 @@ def _get_model():
     if _model is None:
         from sentence_transformers import SentenceTransformer
 
-        _model = SentenceTransformer(EMBEDDING_MODEL)
+        _model = SentenceTransformer(EMBEDDING_MODEL_LOAD_ID)
     return _model
 
 
