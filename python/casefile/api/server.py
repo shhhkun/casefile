@@ -8,12 +8,14 @@ For hosted web services, the app binds to 0.0.0.0 and reads $PORT.
 
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from ..errors import SourceError
 from ..pipeline.analyze import analyze
+from ..rag.embed import warmup
 from ..types import CaseAnalysis
 
 # Ensure logger output is visible even when uvicorn's default config
@@ -22,7 +24,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-app = FastAPI(title="CaseFile Python Pipeline", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load the embedding model once at startup so the first `/analyze`
+    request does not pay the ~6-second cold RAG model-loading cost."""
+    logger.info("Warming up RAG embedding model...")
+    warmup()
+    logger.info("RAG embedding model ready.")
+    yield
+
+
+app = FastAPI(title="CaseFile Python Pipeline", version="0.1.0", lifespan=lifespan)
 
 
 class AnalyzeRequest(BaseModel):

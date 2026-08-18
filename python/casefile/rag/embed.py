@@ -33,6 +33,16 @@ def _get_model():
     return _model
 
 
+def warmup() -> None:
+    """Eagerly load the embedding model.
+
+    Called at server startup so the first `/analyze` request does not
+    pay the model-loading cost. Safe to call multiple times — the
+    module-level singleton is reused.
+    """
+    _get_model()
+
+
 def embed_text(text: str) -> list[float]:
     """Generate a single normalized embedding vector for the given text."""
     model = _get_model()
