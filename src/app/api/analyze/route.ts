@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // console.log("Analyze: running local pipeline");
-    // return runLocalPipeline(url, refinementNames, model);
+    console.log("Analyze: running local pipeline");
+    return runLocalPipeline(url, refinementNames, model);
   } catch (error) {
     console.error("Analyze: unexpected error:", error);
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
