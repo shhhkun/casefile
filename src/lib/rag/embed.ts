@@ -7,7 +7,15 @@ import {
 env.allowLocalModels = false;
 env.cacheDir = "/tmp/huggingface_cache";
 
-export const EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2";
+// Model ID used to *load* the weights from Hugging Face Hub (Transformers.js).
+const EMBEDDING_MODEL_LOAD_ID = "Xenova/all-MiniLM-L6-v2";
+
+// Canonical model identifier stored in rag_embeddings.model and used in
+// retrieval filters. This is the SAME string across TS and Python so
+// cross-language ingestion/retrieval works. The model weights are identical
+// (all-MiniLM-L6-v2, 384-dim) — only the module-loading ID differs per
+// runtime.
+export const EMBEDDING_MODEL = "all-MiniLM-L6-v2";
 export const EMBEDDING_DIMENSIONS = 384;
 
 // Module-level singleton so the model is reused across warm serverless
@@ -18,7 +26,7 @@ function getExtractor(): Promise<FeatureExtractionPipeline> {
   if (!extractorPromise) {
     extractorPromise = pipeline(
       "feature-extraction",
-      EMBEDDING_MODEL,
+      EMBEDDING_MODEL_LOAD_ID,
     ) as Promise<FeatureExtractionPipeline>;
   }
   return extractorPromise;
