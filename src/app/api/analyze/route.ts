@@ -52,6 +52,10 @@ export async function POST(req: NextRequest) {
         return runLocalPipeline(url, refinementNames, model);
       }
     }
+
+    // When PYTHON_SERVICE_URL is not set, run the local TypeScript pipeline.
+    console.log("Analyze: running local pipeline");
+    return runLocalPipeline(url, refinementNames, model);
   } catch (error) {
     console.error("Analyze: unexpected error:", error);
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
