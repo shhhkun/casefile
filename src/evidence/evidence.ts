@@ -1,4 +1,4 @@
-import { ExtractedCase } from "./types";
+import { ExtractedCase } from "../lib/types";
 import {
   ingestSource,
   findReusableSource,
@@ -6,8 +6,8 @@ import {
   fetchCourtListenerSource,
   fetchWikipediaSource,
   deleteExpiredSources,
-} from "./rag";
-import type { FetchedSource, RetrievedChunk } from "./rag";
+} from "../lib/rag";
+import type { FetchedSource, RetrievedChunk } from "../lib/rag";
 
 export interface Evidence {
   caseInfo?: {

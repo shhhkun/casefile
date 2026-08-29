@@ -1,5 +1,5 @@
 import Groq from "groq-sdk";
-import { Evidence } from "./evidence";
+import { Evidence } from "../evidence/evidence";
 import { redis } from "./redis";
 import { CACHE_TTL } from "./cache";
 
