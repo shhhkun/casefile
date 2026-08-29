@@ -70,7 +70,7 @@ async function runLocalPipeline(
 ) {
   const { SourceError } = await import("@/lib/errors");
   const { sourceContent } = await import("@/lib/source");
-  const { extractCase } = await import("@/lib/extract");
+  const { extractCase } = await import("@/extract/extract");
   const { searchCourtListener } = await import("@/lib/search");
   const { searchWikipedia } = await import("@/lib/wiki");
   const { fetchEvidence } = await import("@/evidence/evidence");
