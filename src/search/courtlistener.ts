@@ -2,7 +2,7 @@ import {
   ExtractedCase,
   ScoredCandidate,
   CachedCourtListenerResult,
-} from "../lib/types";
+} from "../types";
 import { generateQueries } from "./queries";
 import { hashKey } from "../cache/hash";
 import { redis } from "../cache/redis";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CaseAnalysis } from "@/lib/types";
+import { CaseAnalysis } from "@/types";
 
 import SourceCard from "./components/SourceCard";
 import ControlsCard from "./components/ControlsCard";

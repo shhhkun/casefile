@@ -1,5 +1,5 @@
 import Groq from "groq-sdk";
-import { ExtractedCase } from "../lib/types";
+import { ExtractedCase } from "../types";
 import { redis } from "../cache/redis";
 import { CACHE_TTL } from "../cache/cache";
 

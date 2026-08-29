@@ -1,4 +1,4 @@
-import { ExtractedCase, ScoredCandidate, CachedWikiResult } from "../lib/types";
+import { ExtractedCase, ScoredCandidate, CachedWikiResult } from "../types";
 import { generateWikiQuery } from "./queries";
 import { hashKey } from "../cache/hash";
 import { redis } from "../cache/redis";

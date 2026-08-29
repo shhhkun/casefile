@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import type { CaseAnalysis } from "@/lib/types";
+import type { CaseAnalysis } from "@/types";
 import type { SearchContext } from "@/evidence/evidence";
 
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL;
@@ -68,7 +68,7 @@ async function runLocalPipeline(
   refinementNames: string[],
   model: string,
 ) {
-  const { SourceError } = await import("@/errors/errors");
+  const { SourceError } = await import("@/errors");
   const { sourceContent } = await import("@/source/source");
   const { extractCase } = await import("@/extract/extract");
   const { searchCourtListener } = await import("@/search/courtlistener");

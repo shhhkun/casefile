@@ -1,4 +1,4 @@
-import { ExtractedCase } from "../lib/types";
+import { ExtractedCase } from "../types";
 import {
   ingestSource,
   findReusableSource,

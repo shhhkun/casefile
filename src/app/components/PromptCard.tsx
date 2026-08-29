@@ -1,5 +1,5 @@
 import { Menu, Play } from "lucide-react";
-import { CaseAnalysis, CaseOverview } from "@/lib/types";
+import { CaseAnalysis, CaseOverview } from "@/types";
 import ModelDropdown from "./Dropdown";
 
 function CaseOverviewPanel({ overview }: { overview: CaseOverview }) {

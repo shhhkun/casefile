@@ -1,4 +1,4 @@
-import { ExtractedContent } from "../lib/types";
+import { ExtractedContent } from "../types";
 import { extractArticle } from "./article";
 import { extractTranscript } from "./transcript";
 import { redis } from "../cache/redis";
