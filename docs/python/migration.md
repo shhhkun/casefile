@@ -16,21 +16,21 @@ CaseFile is a single-page Next.js app with one API endpoint (`POST /api/analyze`
 User URL
    │
    ▼
-1. Source Extraction (sourceContent)          src/lib/source.ts
-   │  YouTube → youtube-transcript            src/lib/transcript.ts
-   │  Article → Cheerio HTML scrape           src/lib/article.ts
+1. Source Extraction (sourceContent)          src/source/source.ts
+   │  YouTube → youtube-transcript            src/source/transcript.ts
+   │  Article → Cheerio HTML scrape           src/source/article.ts
    ▼
-2. Metadata Extraction (extractCase)          src/lib/extract.ts
+2. Metadata Extraction (extractCase)          src/extract/extract.ts
    │  → Groq LLM (JSON) — ExtractedCase
    ▼
-3. Parallel External Search                   src/lib/search.ts + src/lib/wiki.ts
-   │  CourtListener (tiered queries)          src/lib/queries.ts
+3. Parallel External Search                   src/search/courtlistener.ts + src/search/wiki.ts
+   │  CourtListener (tiered queries)          src/search/queries.ts
    │  Wikipedia (free-text query)
    ▼
-4. Evidence Assembly (fetchEvidence)          src/lib/evidence.ts
-   │  → includes RAG ingestion + retrieval    src/lib/rag/*
+4. Evidence Assembly (fetchEvidence)          src/evidence/evidence.ts
+   │  → includes RAG ingestion + retrieval    src/rag/*
    ▼
-5. Overview Generation (generateOverview)     src/lib/overview.ts
+5. Overview Generation (generateOverview)     src/overview/overview.ts
    │  → Groq LLM (JSON) — CaseOverview
    ▼
 CaseAnalysis JSON → UI (PromptCard / SourceCard)
@@ -38,15 +38,15 @@ CaseAnalysis JSON → UI (PromptCard / SourceCard)
 
 ### 1.2 Detailed Stage Breakdown
 
-#### Stage 1 — Source Extraction (`src/lib/source.ts`)
+#### Stage 1 — Source Extraction (`src/source/source.ts`)
 
 - Detects if a URL is a YouTube URL (`isYoutubeUrl`) or a regular article.
-- **YouTube:** calls `extractTranscript(url)` (`src/lib/transcript.ts`), which uses the `youtube-transcript` package. Returns a single space-joined transcript string. Explicit error mapping for disabled/unavailable/rate-limited transcripts.
-- **Article:** calls `extractArticle(url)` (`src/lib/article.ts`), which fetches the HTML with a browser User-Agent, removes `script/style/nav/footer/header`, and extracts `body` text with `cheerio`.
+- **YouTube:** calls `extractTranscript(url)` (`src/source/transcript.ts`), which uses the `youtube-transcript` package. Returns a single space-joined transcript string. Explicit error mapping for disabled/unavailable/rate-limited transcripts.
+- **Article:** calls `extractArticle(url)` (`src/source/article.ts`), which fetches the HTML with a browser User-Agent, removes `script/style/nav/footer/header`, and extracts `body` text with `cheerio`.
 - **Output type:** `ExtractedContent { sourceType, title, text, url }`.
 - **Caching:** writes `cache:source:{hash(url)}` to Upstash Redis with a 3-day TTL (`CACHE_TTL.source`).
 
-#### Stage 2 — Metadata Extraction (`src/lib/extract.ts`)
+#### Stage 2 — Metadata Extraction (`src/extract/extract.ts`)
 
 - Calls the Groq LLM with a system prompt ("You are a legal case identifier") and the transcript/article text **truncated to the first 12,000 characters**.
 - Produces structured `ExtractedCase` JSON:
@@ -58,9 +58,9 @@ CaseAnalysis JSON → UI (PromptCard / SourceCard)
 
 Runs two searches concurrently via `Promise.all`:
 
-**CourtListener** (`src/lib/search.ts`):
+**CourtListener** (`src/search/courtlistener.ts`):
 
-- `generateQueries(extracted, refinementNames)` (`src/lib/queries.ts`) produces an ordered list of tiered queries:
+- `generateQueries(extracted, refinementNames)` (`src/search/queries.ts`) produces an ordered list of tiered queries:
   - Tier 0: quoted refinement names
   - Tier 1: unquoted refinement names
   - Tier 2: quoted defendant + state
@@ -75,7 +75,7 @@ Runs two searches concurrently via `Promise.all`:
 - Only the top 3 unique candidates are kept.
 - **Caching:** per-query key `cache:courtlistener:{hash(query)}`, 1-day TTL.
 
-**Wikipedia** (`src/lib/wiki.ts`):
+**Wikipedia** (`src/search/wiki.ts`):
 
 - `generateWikiQuery(extracted, refinementNames)` builds a single free-text search query.
 - Hits the Wikipedia `action=query` search API (`srlimit=3`).
@@ -83,11 +83,11 @@ Runs two searches concurrently via `Promise.all`:
 - Fetches the REST summary (`page/summary`) for the top result only.
 - **Caching:** key `cache:wikipedia:{hash(query)}`, 1-day TTL, storing candidates, summary, url, thumbnail.
 
-**Name refinement** (`src/lib/queries.ts`):
+**Name refinement** (`src/search/queries.ts`):
 
 - Uses Jaro-Winkler similarity (threshold 0.84) against the `natural` package to match user-provided refinement names to extracted defendant/victim.
 
-#### Stage 4 — Evidence Assembly (`src/lib/evidence.ts`)
+#### Stage 4 — Evidence Assembly (`src/evidence/evidence.ts`)
 
 - Always includes:
   - Structured `caseInfo` (the extracted signals).
@@ -97,14 +97,14 @@ Runs two searches concurrently via `Promise.all`:
 - **RAG:** ingests the full underlying documents of the top search results (CourtListener opinion + Wikipedia article) and retrieves relevant chunks (`topK: 3`), added as `ragChunks`.
 - Logs approximate token counts for each evidence section.
 
-#### Stage 5 — Overview Generation (`src/lib/overview.ts`)
+#### Stage 5 — Overview Generation (`src/overview/overview.ts`)
 
 - Calls the Groq LLM with the full `Evidence` object serialized into the prompt.
 - Instructs the model to output structured JSON: `summary`, `timeline[]`, `people[]`, `legalOutcome`, `faq[]`.
 - Post-processes to strip markdown code fences.
 - **Caching:** key `cache:overview:{hash(url)}`, 1-day TTL.
 
-### 1.3 RAG Layer (`src/lib/rag/`)
+### 1.3 RAG Layer (`src/rag/`)
 
 | File          | Purpose                                                                                                                                                                                                                                       |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -122,12 +122,11 @@ Runs two searches concurrently via `Promise.all`:
 
 | File                                    | Purpose                                                                                                                       |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/types.ts`                      | Shared TypeScript types (`ExtractedCase`, `ScoredCandidate`, `CaseAnalysis`, `ExtractedContent`, `CaseOverview`, cache types) |
-| `src/lib/cache.ts`                      | TTL constants (`source`: 3d, `extract`: 3d, `search`: 1d, `overview`: 1d)                                                     |
-| `src/lib/redis.ts`                      | Upstash Redis client (`@upstash/redis`)                                                                                       |
-| `src/lib/hash.ts`                       | SHA-256 hashing for cache keys                                                                                                |
-| `src/lib/errors.ts`                     | `SourceError` with HTTP status code                                                                                           |
-| `src/lib/resolve.ts`                    | **Legacy inactive module** — LLM-based case resolution was removed from the active pipeline; retained for reference           |
+| `src/types.ts`                      | Shared TypeScript types (`ExtractedCase`, `ScoredCandidate`, `CaseAnalysis`, `ExtractedContent`, `CaseOverview`, cache types) |
+| `src/cache/cache.ts`                      | TTL constants (`source`: 3d, `extract`: 3d, `search`: 1d, `overview`: 1d)                                                     |
+| `src/cache/redis.ts`                      | Upstash Redis client (`@upstash/redis`)                                                                                       |
+| `src/cache/hash.ts`                       | SHA-256 hashing for cache keys                                                                                                |
+| `src/errors.ts`                     | `SourceError` with HTTP status code                                                                                           |
 | `src/app/api/analyze/route.ts`          | The single API endpoint orchestrating all 5 stages                                                                            |
 | `supabase/migrations/0001_rag_init.sql` | pgvector schema: `rag_sources`, `rag_chunks`, `rag_embeddings` + HNSW index                                                   |
 | `scripts/rag-demo.ts`                   | Development entry point proving storage → embedding → retrieval                                                               |
@@ -156,15 +155,15 @@ The **entire analysis pipeline** (Stages 1–5) will eventually move to Python. 
 
 | Stage                  | TypeScript Module                                                  | Python Module (planned)     |
 | ---------------------- | ------------------------------------------------------------------ | --------------------------- |
-| 1. Source Extraction   | `src/lib/source.ts`, `src/lib/transcript.ts`, `src/lib/article.ts` | `python/casefile/source/`   |
-| 2. Metadata Extraction | `src/lib/extract.ts`                                               | `python/casefile/extract/`  |
-| 3. External Search     | `src/lib/search.ts`, `src/lib/wiki.ts`, `src/lib/queries.ts`       | `python/casefile/search/`   |
-| 4. Evidence Assembly   | `src/lib/evidence.ts`                                              | `python/casefile/evidence/` |
-| 5. Overview Generation | `src/lib/overview.ts`                                              | `python/casefile/overview/` |
-| RAG layer              | `src/lib/rag/*`                                                    | `python/casefile/rag/`      |
-| Types                  | `src/lib/types.ts`                                                 | `python/casefile/types.py`  |
-| Cache                  | `src/lib/cache.ts`, `src/lib/redis.ts`, `src/lib/hash.ts`          | `python/casefile/cache.py`  |
-| Errors                 | `src/lib/errors.ts`                                                | `python/casefile/errors.py` |
+| 1. Source Extraction   | `src/source/source.ts`, `src/source/transcript.ts`, `src/source/article.ts` | `python/casefile/source/`   |
+| 2. Metadata Extraction | `src/extract/extract.ts`                                               | `python/casefile/extract/`  |
+| 3. External Search     | `src/search/courtlistener.ts`, `src/search/wiki.ts`, `src/search/queries.ts`       | `python/casefile/search/`   |
+| 4. Evidence Assembly   | `src/evidence/evidence.ts`                                              | `python/casefile/evidence/` |
+| 5. Overview Generation | `src/overview/overview.ts`                                              | `python/casefile/overview/` |
+| RAG layer              | `src/rag/*`                                                    | `python/casefile/rag/`      |
+| Types                  | `src/types.ts`                                                 | `python/casefile/types.py`  |
+| Cache                  | `src/cache/cache.ts`, `src/cache/redis.ts`, `src/cache/hash.ts`          | `python/casefile/cache.py`  |
+| Errors                 | `src/errors.ts`                                                | `python/casefile/errors.py` |
 | Pipeline orchestration | `src/app/api/analyze/route.ts`                                     | `python/casefile/pipeline/` |
 
 ### 2.2 What Stays in TypeScript/Next.js
@@ -331,7 +330,7 @@ The following issues were found and fixed while bringing the Python pipeline to 
 
 **Root cause:** The `EMBEDDING_MODEL` string differed between implementations — TS used `"Xenova/all-MiniLM-L6-v2"` while Python used `"sentence-transformers/all-MiniLM-L6-v2"`. Both use the same underlying model weights, but the `model` column in `rag_embeddings` stored the implementation-specific string. Retrieval filters on `e.model = <EMBEDDING_MODEL>`, so cross-language retrieval matched nothing.
 
-**Fix:** Unified `EMBEDDING_MODEL` to the canonical `"all-MiniLM-L6-v2"` in both `src/lib/rag/embed.ts` and `python/casefile/rag/embed.py`. Separated the model-loading ID from the DB-storage ID:
+**Fix:** Unified `EMBEDDING_MODEL` to the canonical `"all-MiniLM-L6-v2"` in both `src/rag/embed.ts` and `python/casefile/rag/embed.py`. Separated the model-loading ID from the DB-storage ID:
 
 - `EMBEDDING_MODEL_LOAD_ID` — the HF repo used to load weights (`Xenova/all-MiniLM-L6-v2` for TS, `sentence-transformers/all-MiniLM-L6-v2` for Python)
 - `EMBEDDING_MODEL` — the canonical string stored in `rag_embeddings.model` (same across both)
@@ -358,13 +357,13 @@ The following issues were found and fixed while bringing the Python pipeline to 
 
 **Root cause:** `findReusableSource()` was checked against the **search result URL** but `ingestSource()` stored the **fetched source URL** (which can differ for CourtListener — the search result URL vs. the resolved opinion URL).
 
-**Fix:** Added a second dedup check in `ingestExternalSource()` (both `src/lib/evidence.ts` and `python/casefile/evidence/evidence.py`) using the actual fetched `source.url` to avoid unnecessary external fetches and re-ingestion.
+**Fix:** Added a second dedup check in `ingestExternalSource()` (both `src/evidence/evidence.ts` and `python/casefile/evidence/evidence.py`) using the actual fetched `source.url` to avoid unnecessary external fetches and re-ingestion.
 
 #### 9. RAG ingestion runtime optimization (batched inserts + transaction)
 
 **Change:** Replaced the per-chunk insert loop (2N+1 DB round trips) with batched multi-row INSERTs wrapped in a single transaction:
 
-- **TypeScript (`src/lib/rag/ingest.ts`):** Multi-row `INSERT ... VALUES (...), (...)` for all chunks and all embeddings, wrapped in `withTransaction()` from `src/lib/rag/db.ts`. Reduces round trips from 2N+1 to ~3.
+- **TypeScript (`src/rag/ingest.ts`):** Multi-row `INSERT ... VALUES (...), (...)` for all chunks and all embeddings, wrapped in `withTransaction()` from `src/rag/db.ts`. Reduces round trips from 2N+1 to ~3.
 - **Python (`python/casefile/rag/ingest.py`):** Single-row `INSERT ... RETURNING` per chunk (reliable with psycopg v3) and `te()` for embeddings, all inside `with_transaction()`. Preserves atomicity and reduces per-statement commit overhead.
 
 ---
@@ -405,10 +404,10 @@ The TypeScript implementation in `src/` remains the **reference implementation**
 Key reference files:
 
 - `src/app/api/analyze/route.ts` — pipeline orchestration
-- `src/lib/source.ts`, `src/lib/transcript.ts`, `src/lib/article.ts` — Stage 1
-- `src/lib/extract.ts` — Stage 2
-- `src/lib/search.ts`, `src/lib/wiki.ts`, `src/lib/queries.ts` — Stage 3
-- `src/lib/evidence.ts` — Stage 4
-- `src/lib/overview.ts` — Stage 5
-- `src/lib/rag/*` — RAG layer
-- `src/lib/types.ts`, `src/lib/cache.ts`, `src/lib/redis.ts`, `src/lib/hash.ts`, `src/lib/errors.ts` — supporting infrastructure
+- `src/source/source.ts`, `src/source/transcript.ts`, `src/source/article.ts` — Stage 1
+- `src/extract/extract.ts` — Stage 2
+- `src/search/courtlistener.ts`, `src/search/wiki.ts`, `src/search/queries.ts` — Stage 3
+- `src/evidence/evidence.ts` — Stage 4
+- `src/overview/overview.ts` — Stage 5
+- `src/rag/*` — RAG layer
+- `src/types.ts`, `src/cache/cache.ts`, `src/cache/redis.ts`, `src/cache/hash.ts`, `src/errors.ts` — supporting infrastructure

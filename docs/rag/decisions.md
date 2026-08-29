@@ -53,14 +53,14 @@ CaseFile uses a **shared, persistent-but-expiring knowledge base** for RAG. This
 
 ### 2.4 Implementation Status
 
-The RAG storage/retrieval layer is **implemented** as real CaseFile code under `src/lib/rag/` (types, db, chunk, embed, fetch, ingest, retrieve, cleanup, index), with a pgvector migration (`supabase/migrations/0001_rag_init.sql`) and a development entry point (`scripts/rag-demo.ts`).
+The RAG storage/retrieval layer is **implemented** as real CaseFile code under `src/rag/` (types, db, chunk, embed, fetch, ingest, retrieve, cleanup, index), with a pgvector migration (`supabase/migrations/0001_rag_init.sql`) and a development entry point (`scripts/rag-demo.ts`).
 
-**Integration into `/api/analyze`:** RAG is now wired into the Evidence Assembly stage (`src/lib/evidence.ts`). The #1 CourtListener and #1 Wikipedia search results are preserved as pipeline metadata (`SearchContext`) in `src/app/api/analyze/route.ts` and passed to `fetchEvidence`, which ingests them through the existing `ingestSource` layer and retrieves relevant chunks via `retrieveChunks` (`topK: 3`). Retrieved chunks are added to the `Evidence` object as `ragChunks`, making them available to the overview-generation stage without modifying its prompt or model.
+**Integration into `/api/analyze`:** RAG is now wired into the Evidence Assembly stage (`src/evidence/evidence.ts`). The #1 CourtListener and #1 Wikipedia search results are preserved as pipeline metadata (`SearchContext`) in `src/app/api/analyze/route.ts` and passed to `fetchEvidence`, which ingests them through the existing `ingestSource` layer and retrieves relevant chunks via `retrieveChunks` (`topK: 3`). Retrieved chunks are added to the `Evidence` object as `ragChunks`, making them available to the overview-generation stage without modifying its prompt or model.
 
 **RAG source material (implemented):** RAG ingests the **full underlying documents** of the top search results, not the search snippets/summaries and not the user's original URL:
 
-- **CourtListener:** the selected search result is an opinion cluster. `fetchCourtListenerSource` (`src/lib/rag/fetch.ts`) resolves the cluster via the Clusters API to its `sub_opinions`, fetches the first opinion through the Opinions API, prefers `html_with_citations`, and normalizes it to readable text (Cheerio) before passing it to `ingestSource`. The `cluster_id` is preserved from the search stage (`search.ts` → `SearchContext`). The Clusters/Opinions requests are authenticated with `COURTLISTENER_API_TOKEN` from `.env.local`.
-- **Wikipedia:** `fetchWikipediaSource` (`src/lib/rag/fetch.ts`) fetches the full article via the MediaWiki REST `with_html` endpoint and normalizes the HTML to readable text before passing it to `ingestSource`.
+- **CourtListener:** the selected search result is an opinion cluster. `fetchCourtListenerSource` (`src/rag/fetch.ts`) resolves the cluster via the Clusters API to its `sub_opinions`, fetches the first opinion through the Opinions API, prefers `html_with_citations`, and normalizes it to readable text (Cheerio) before passing it to `ingestSource`. The `cluster_id` is preserved from the search stage (`search.ts` → `SearchContext`). The Clusters/Opinions requests are authenticated with `COURTLISTENER_API_TOKEN` from `.env.local`.
+- **Wikipedia:** `fetchWikipediaSource` (`src/rag/fetch.ts`) fetches the full article via the MediaWiki REST `with_html` endpoint and normalizes the HTML to readable text before passing it to `ingestSource`.
 
 The normal evidence (Wikipedia summary, CourtListener snippet) is preserved unchanged for the existing pipeline. Missing/failed full-document retrieval is non-fatal — that source is skipped and RAG continues with whatever remains.
 
@@ -209,7 +209,7 @@ Two pgvector index types are relevant:
 
 ### 5.1 The Decision
 
-Use **token-based chunking as the initial baseline**. The implemented default (`chunkText` in `src/lib/rag/chunk.ts`) is **300 tokens with 50-token overlap**, reduced from the original 512–1024 token target during development to keep retrieved chunks compact for the LLM context budget.
+Use **token-based chunking as the initial baseline**. The implemented default (`chunkText` in `src/rag/chunk.ts`) is **300 tokens with 50-token overlap**, reduced from the original 512–1024 token target during development to keep retrieved chunks compact for the LLM context budget.
 
 - Chunking is kept **modular** because this is one of the genuinely open areas.
 - CaseFile primarily processes human-written articles, transcripts, and eventually CourtListener legal opinions, so **preserving semantic boundaries is important**.
@@ -220,7 +220,7 @@ Use **token-based chunking as the initial baseline**. The implemented default (`
 
 - `extractCase` truncates source text to the first 12,000 chars.
 - `fetchEvidence` truncates `originalText` to 14,000 chars using head (60%) + tail (40%) — the middle is dropped entirely.
-- The RAG module (`src/lib/rag/chunk.ts`) implements token-based chunking with overlap (`chunkText`), used by `ingestSource`. It is now wired into the `/api/analyze` pipeline via Evidence Assembly (see §12).
+- The RAG module (`src/rag/chunk.ts`) implements token-based chunking with overlap (`chunkText`), used by `ingestSource`. It is now wired into the `/api/analyze` pipeline via Evidence Assembly (see §12).
 
 ### 5.3 Open Sub-Decisions (see §10)
 
@@ -243,7 +243,7 @@ The knowledge base is **persistent across requests but temporary over time**. Us
 - Each `sources` row carries an `expires_at` timestamp.
 - Expired documents and their associated chunks/embeddings are removed safely:
   - `chunks` and `embeddings` have `ON DELETE CASCADE` from `sources`, so deleting an expired source automatically removes all associated RAG data.
-  - **Active cleanup (implemented):** `fetchEvidence` calls `deleteExpiredSources()` (`src/lib/rag/cleanup.ts`) before ingestion, so expired rows are removed through the existing cascading cleanup mechanism on every analysis. This keeps the knowledge base bounded without requiring a separate scheduled job.
+  - **Active cleanup (implemented):** `fetchEvidence` calls `deleteExpiredSources()` (`src/rag/cleanup.ts`) before ingestion, so expired rows are removed through the existing cascading cleanup mechanism on every analysis. This keeps the knowledge base bounded without requiring a separate scheduled job.
   - A **scheduled cleanup job** (cron/edge function) remains a possible future addition for environments where the active cleanup is insufficient.
 
 ### 6.3 Open Sub-Decisions
@@ -340,7 +340,7 @@ Supabase connection details are read from the existing `.env.local`:
 - `DATABASE_URL`
 - `DIRECT_URL`
 
-CourtListener full-opinion fetching (`src/lib/rag/fetch.ts`) additionally requires `COURTLISTENER_API_TOKEN` in `.env.local` to authenticate the Clusters/Opinions API requests.
+CourtListener full-opinion fetching (`src/rag/fetch.ts`) additionally requires `COURTLISTENER_API_TOKEN` in `.env.local` to authenticate the Clusters/Opinions API requests.
 
 The implementation uses the existing `.env` configuration rather than hardcoding credentials.
 
@@ -384,7 +384,7 @@ These decisions keep CaseFile free to operate, align with its existing stateless
 
 ### 12.1 The Decision
 
-RAG ingestion and retrieval are **contained entirely within the Evidence Assembly stage** (`src/lib/evidence.ts`). No RAG logic is introduced into metadata extraction or any earlier LLM stage.
+RAG ingestion and retrieval are **contained entirely within the Evidence Assembly stage** (`src/evidence/evidence.ts`). No RAG logic is introduced into metadata extraction or any earlier LLM stage.
 
 ### 12.2 Rationale
 
@@ -395,16 +395,16 @@ RAG ingestion and retrieval are **contained entirely within the Evidence Assembl
 
 ### 12.3 Implementation Details
 
-- **`SearchContext` type** (`src/lib/evidence.ts`): Captures the #1 CourtListener result (`title`, `url`, `snippet`, `court`, `dateFiled`, `clusterId`) and #1 Wikipedia result (`title`, `url`, `summary`) from the search stage.
+- **`SearchContext` type** (`src/evidence/evidence.ts`): Captures the #1 CourtListener result (`title`, `url`, `snippet`, `court`, `dateFiled`, `clusterId`) and #1 Wikipedia result (`title`, `url`, `summary`) from the search stage.
 - **Route wiring** (`src/app/api/analyze/route.ts`): After search, the #1 results are extracted from `courtResults[0]` and `wikiResult.candidates[0]` + `wikiResult.summary`, assembled into a `SearchContext`, and passed to `fetchEvidence`. The top CourtListener `cluster_id` is preserved so Evidence Assembly can resolve it to the underlying opinion.
-- **External full-document fetching** (`src/lib/rag/fetch.ts`): A dedicated module owns all external full-document retrieval, separated from evidence orchestration:
+- **External full-document fetching** (`src/rag/fetch.ts`): A dedicated module owns all external full-document retrieval, separated from evidence orchestration:
   - **CourtListener:** `fetchCourtListenerSource(clusterId)` resolves the cluster via the Clusters API to its `sub_opinions`; the first opinion is fetched via the Opinions API, preferring `html_with_citations`, then normalized to readable text (Cheerio). Authenticated with `COURTLISTENER_API_TOKEN`.
   - **Wikipedia:** `fetchWikipediaSource(title, url)` fetches the full article via the MediaWiki REST `with_html` endpoint and normalizes the HTML to readable text (Cheerio).
   - Both return a normalized `FetchedSource` or `null` (non-fatal on failure).
-- **Dedup-before-fetch** (`src/lib/evidence.ts`): Before any external fetch, `findReusableSource` (`src/lib/rag/ingest.ts`) checks the knowledge base for an existing **unexpired** source row. If found, the external fetch, chunking, and embedding are skipped entirely and the stored chunks/embeddings are reused. This is especially important for CourtListener, whose Clusters/Opinions endpoints are token-authenticated and rate-limited.
-- **Active cleanup** (`src/lib/evidence.ts`): `fetchEvidence` calls `deleteExpiredSources()` before ingestion, so expired sources (and their cascading chunks/embeddings) are actively removed through the existing cleanup mechanism.
-- **Ingest** (`src/lib/evidence.ts`): The full CourtListener opinion text and full Wikipedia article text are ingested via the existing `ingestSource` function. At most 2 external sources are ingested per analysis. The existing URL deduplication and TTL behavior is reused. Missing/failed full-document retrieval is non-fatal — that source is skipped.
-- **Retrieve** (`src/lib/evidence.ts`): A retrieval query is built from the extracted case signals (caseName, defendant, victim, crimeType, jurisdiction, state, approximateYear, keywords). The existing `retrieveChunks` function is called with `topK: 3` to retrieve relevant chunks from the knowledge base.
+- **Dedup-before-fetch** (`src/evidence/evidence.ts`): Before any external fetch, `findReusableSource` (`src/rag/ingest.ts`) checks the knowledge base for an existing **unexpired** source row. If found, the external fetch, chunking, and embedding are skipped entirely and the stored chunks/embeddings are reused. This is especially important for CourtListener, whose Clusters/Opinions endpoints are token-authenticated and rate-limited.
+- **Active cleanup** (`src/evidence/evidence.ts`): `fetchEvidence` calls `deleteExpiredSources()` before ingestion, so expired sources (and their cascading chunks/embeddings) are actively removed through the existing cleanup mechanism.
+- **Ingest** (`src/evidence/evidence.ts`): The full CourtListener opinion text and full Wikipedia article text are ingested via the existing `ingestSource` function. At most 2 external sources are ingested per analysis. The existing URL deduplication and TTL behavior is reused. Missing/failed full-document retrieval is non-fatal — that source is skipped.
+- **Retrieve** (`src/evidence/evidence.ts`): A retrieval query is built from the extracted case signals (caseName, defendant, victim, crimeType, jurisdiction, state, approximateYear, keywords). The existing `retrieveChunks` function is called with `topK: 3` to retrieve relevant chunks from the knowledge base.
 - **Non-fatal error handling:** Both ingestion and retrieval are wrapped in try/catch blocks. Per-source ingestion errors are caught individually; overall RAG errors are caught at the block level. The `ragChunks` field is left empty if RAG fails.
 
 ### 12.4 Deviation from Originally Intended Flow
