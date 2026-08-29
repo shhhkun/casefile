@@ -74,7 +74,7 @@ async function runLocalPipeline(
   const { searchCourtListener } = await import("@/lib/search");
   const { searchWikipedia } = await import("@/lib/wiki");
   const { fetchEvidence } = await import("@/evidence/evidence");
-  const { generateOverview } = await import("@/lib/overview");
+  const { generateOverview } = await import("@/overview/overview");
 
   // Step 1: source content from URL (YouTube or article)
   let content;
