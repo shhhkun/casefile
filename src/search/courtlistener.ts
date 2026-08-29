@@ -2,11 +2,11 @@ import {
   ExtractedCase,
   ScoredCandidate,
   CachedCourtListenerResult,
-} from "./types";
+} from "../types";
 import { generateQueries } from "./queries";
-import { hashKey } from "./hash";
-import { redis } from "./redis";
-import { CACHE_TTL } from "./cache";
+import { hashKey } from "../cache/hash";
+import { redis } from "../cache/redis";
+import { CACHE_TTL } from "../cache/cache";
 
 interface CourtListenerResult {
   id: string;

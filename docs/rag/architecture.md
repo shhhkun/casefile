@@ -32,15 +32,15 @@ CaseAnalysis JSON → UI (PromptCard / SourceCard)
 
 ### 1.2 Detailed Stage Breakdown
 
-#### Stage 1 — Source Extraction (`src/lib/source.ts`)
+#### Stage 1 — Source Extraction (`src/source/source.ts`)
 
 - Detects if a URL is a YouTube URL (`isYoutubeUrl`) or a regular article.
-- **YouTube:** calls `extractTranscript(url)` (`src/lib/transcript.ts`), which uses the `youtube-transcript` package. Returns a single space-joined transcript string. Explicit error mapping for disabled/unavailable/rate-limited transcripts.
-- **Article:** calls `extractArticle(url)` (`src/lib/article.ts`), which fetches the HTML with a browser User-Agent, removes `script/style/nav/footer/header`, and extracts `body` text with `cheerio`.
+- **YouTube:** calls `extractTranscript(url)` (`src/source/transcript.ts`), which uses the `youtube-transcript` package. Returns a single space-joined transcript string. Explicit error mapping for disabled/unavailable/rate-limited transcripts.
+- **Article:** calls `extractArticle(url)` (`src/source/article.ts`), which fetches the HTML with a browser User-Agent, removes `script/style/nav/footer/header`, and extracts `body` text with `cheerio`.
 - **Output type:** `ExtractedContent { sourceType, title, text, url }`.
 - **Caching:** writes `cache:source:{hash(url)}` to Upstash Redis with a 3-day TTL (`CACHE_TTL.source`).
 
-#### Stage 2 — Metadata Extraction (`src/lib/extract.ts`)
+#### Stage 2 — Metadata Extraction (`src/extract/extract.ts`)
 
 - Calls the Groq LLM with a system prompt ("You are a legal case identifier") and the transcript/article text **truncated to the first 12,000 characters**.
 - Produces structured `ExtractedCase` JSON:
@@ -52,9 +52,9 @@ CaseAnalysis JSON → UI (PromptCard / SourceCard)
 
 Runs two searches concurrently via `Promise.all`:
 
-**CourtListener** (`src/lib/search.ts`):
+**CourtListener** (`src/search/courtlistener.ts`):
 
-- `generateQueries(extracted, refinementNames)` (`src/lib/queries.ts`) produces an ordered list of tiered queries:
+- `generateQueries(extracted, refinementNames)` (`src/search/queries.ts`) produces an ordered list of tiered queries:
   - Tier 0: quoted refinement names
   - Tier 1: unquoted refinement names
   - Tier 2: quoted defendant + state
@@ -69,7 +69,7 @@ Runs two searches concurrently via `Promise.all`:
 - Only the top 3 unique candidates are kept.
 - **Caching:** per-query key `cache:courtlistener:{hash(query)}`, 1-day TTL.
 
-**Wikipedia** (`src/lib/wiki.ts`):
+**Wikipedia** (`src/search/wiki.ts`):
 
 - `generateWikiQuery(extracted, refinementNames)` builds a single free-text search query.
 - Hits the Wikipedia `action=query` search API (`srlimit=3`).
@@ -77,11 +77,11 @@ Runs two searches concurrently via `Promise.all`:
 - Fetches the REST summary (`page/summary`) for the top result only.
 - **Caching:** key `cache:wikipedia:{hash(query)}`, 1-day TTL, storing candidates, summary, url, thumbnail.
 
-**Name refinement** (`src/lib/queries.ts`):
+**Name refinement** (`src/search/queries.ts`):
 
 - Uses Jaro-Winkler similarity (threshold 0.84) against the `natural` package to match user-provided refinement names to extracted defendant/victim.
 
-#### Stage 4 — Evidence Assembly (`src/lib/evidence.ts`)
+#### Stage 4 — Evidence Assembly (`src/evidence/evidence.ts`)
 
 - Always includes:
   - Structured `caseInfo` (the extracted signals).
@@ -91,7 +91,7 @@ Runs two searches concurrently via `Promise.all`:
 - **RAG:** ingests the full underlying documents of the top search results (CourtListener opinion + Wikipedia article) and retrieves relevant chunks (`topK: 3`), added as `ragChunks`.
 - Logs approximate token counts for each evidence section.
 
-#### Stage 5 — Overview Generation (`src/lib/overview.ts`)
+#### Stage 5 — Overview Generation (`src/overview/overview.ts`)
 
 - Calls the Groq LLM with the full `Evidence` object serialized into the prompt.
 - Instructs the model to output structured JSON: `summary`, `timeline[]`, `people[]`, `legalOutcome`, `faq[]`.
@@ -118,7 +118,7 @@ The route:
 | `cache:wikipedia:{hash(query)}`     | 1 day  | `wiki.ts`     |
 | `cache:overview:{hash(url)}`        | 1 day  | `overview.ts` |
 
-All via Upstash Redis (`src/lib/redis.ts`). TTLs defined in `src/lib/cache.ts`.
+All via Upstash Redis (`src/cache/redis.ts`). TTLs defined in `src/cache/cache.ts`.
 
 ### 1.5 External Dependencies
 
@@ -211,7 +211,7 @@ Key design points:
 ### 2.4 Embeddings
 
 - **Locked in:** local embeddings using **Transformers.js** (`@huggingface/transformers`).
-- **Model:** an open-source local embedding model such as `all-MiniLM-L6-v2` (384-dim, ~25 MB) unless repository investigation gives a strong reason to choose another small model.
+- **Model:** an open-source local embedding model such as `all-MiniLM-L6-v2` (384-dim). Transformers.js defaults to fp32 weights (`onnx/model.onnx`, ~90 MB); CaseFile pins `dtype: "q8"` to load the int8 quantized variant (`onnx/model_quantized.onnx`, ~23 MB), cutting the in-process model footprint ~4x without changing the stored embedding model id. Unless repository investigation gives a strong reason to choose another small model.
 - **Requirement:** zero API cost and no external embedding-service dependency.
 - **Explicitly not used:** OpenAI embeddings. The existing `openai` package is unrelated and does not influence this decision.
 - **Operational consideration:** on Vercel serverless, model weights load on cold start, adding latency to the first request after a cold invocation. Mitigations: module-level model singleton for warm reuse, smallest adequate model, and accepting first-request latency as a documented operational cost.
@@ -242,19 +242,19 @@ Key design points:
 - Each `sources` row carries an `expires_at` timestamp. Expired documents, and their cascading chunks/embeddings, are removed.
 - **The exact TTL is configurable**, not permanently fixed at 3 days. The current 3-day Redis source cache is a reference point, but RAG retention should be chosen based on storage usage, retrieval usefulness, and Supabase free-tier limits.
 - **Cleanup strategy:** expired rows are cleaned up safely via:
-  - **Active cleanup (implemented):** `fetchEvidence` calls `deleteExpiredSources()` (`src/lib/rag/cleanup.ts`) before ingestion, so expired rows are removed through the existing cascading cleanup mechanism on every analysis. This keeps the knowledge base bounded without requiring a separate scheduled job.
+  - **Active cleanup (implemented):** `fetchEvidence` calls `deleteExpiredSources()` (`src/rag/cleanup.ts`) before ingestion, so expired rows are removed through the existing cascading cleanup mechanism on every analysis. This keeps the knowledge base bounded without requiring a separate scheduled job.
   - A scheduled cleanup job (e.g., a cron/edge function) remains a possible future addition for environments where the active cleanup is insufficient; `ON DELETE CASCADE` removes their chunks and embeddings automatically.
 
 ### 2.7 Implemented RAG Modules
 
-The RAG storage/retrieval layer is implemented as real production-oriented CaseFile code under `src/lib/rag/` (established on this branch, **now integrated into `/api/analyze` via Evidence Assembly**):
+The RAG storage/retrieval layer is implemented as real production-oriented CaseFile code under `src/rag/` (established on this branch, **now integrated into `/api/analyze` via Evidence Assembly**):
 
 ```
-src/lib/rag/
+src/rag/
   types.ts     → RAG data types (RagSource, RagChunk, RagEmbedding, RetrievedChunk, IngestInput, IngestResult, FetchedSource)
   db.ts        → lazy pg Pool for Supabase Postgres + pgvector (DATABASE_URL from .env); query/queryOne helpers
   chunk.ts     → token-based chunking with overlap (chunkText; modular — see §2.8)
-  embed.ts     → Transformers.js local embeddings (embedText / embedTexts; module-level model singleton)
+  embed.ts     → Transformers.js local embeddings (embedText / embedTexts; module-level model singleton; loads int8 quantized weights via dtype:"q8"; embedTexts runs bounded sequential batches of 16 chunks)
   fetch.ts     → external full-document fetching: CourtListener cluster → opinion (html_with_citations) and Wikipedia full article (with_html); normalizes HTML → readable text (FetchedSource)
   ingest.ts    → ensures a URL's content is chunked + embedded and stored in Supabase/pgvector; findReusableSource checks for an existing unexpired source before chunking/embedding (skips expensive work when reusable)
   retrieve.ts  → pgvector similarity query (retrieveChunks); current-source priority + cross-source supplement
@@ -274,7 +274,7 @@ The schema and migration are applied (verified against Supabase); the demo exerc
 
 ### 2.8 Chunking
 
-- **Baseline (implemented):** token-based chunking with a default chunk size of **300 tokens** and **50-token overlap** (`chunkText` in `src/lib/rag/chunk.ts`). The original 512–1024 token baseline was reduced during development to keep retrieved chunks compact for the LLM context budget.
+- **Baseline (implemented):** token-based chunking with a default chunk size of **300 tokens** and **50-token overlap** (`chunkText` in `src/rag/chunk.ts`). The original 512–1024 token baseline was reduced during development to keep retrieved chunks compact for the LLM context budget.
 - **Modular by design:** chunking is one of the genuinely open areas. CaseFile primarily processes human-written articles, transcripts, and eventually CourtListener legal opinions, so preserving semantic boundaries matters.
 - **Future improvement:** paragraph/section-aware chunking where appropriate, rather than assuming arbitrary fixed character boundaries are ideal.
 - **Explicitly not introduced:** LLM-based semantic chunking, unless a demonstrated benefit exists — it would add unnecessary inference cost and complexity.
@@ -283,17 +283,17 @@ The schema and migration are applied (verified against Supabase); the demo exerc
 
 | File                           | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/rag/fetch.ts`         | **New module.** External full-document fetching, separated from evidence orchestration: `fetchCourtListenerSource(clusterId)` resolves a cluster → opinion via the Clusters/Opinions APIs (token-authenticated, prefers `html_with_citations`) and `fetchWikipediaSource(title, url)` fetches the full article via `with_html`. Both normalize HTML → readable text and return `FetchedSource \| null`.                                                                                                                                                                                                                                                                                                              |
-| `src/lib/rag/ingest.ts`        | Added `findReusableSource(url)` — a cheap DB check for an existing **unexpired** source before chunking/embedding. `ingestSource` reuses existing chunks/embeddings when a valid source exists, avoiding expensive external fetching, chunking, and embedding.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `src/lib/evidence.ts`          | Added `SearchContext` interface, `ragChunks` field on `Evidence`, and RAG ingestion + retrieval logic in `fetchEvidence`. RAG ingestion now uses the **full underlying documents** of the top search results: CourtListener cluster → opinion (`html_with_citations` → readable text) and Wikipedia article (`with_html` → readable text). Retrieval uses `topK: 3`. Runs `deleteExpiredSources()` before ingestion so expired sources are actively cleaned up, then checks `findReusableSource` **before** any external fetch (avoiding unnecessary CourtListener/Wikipedia requests when a valid source already exists). The per-source ingest/fetch flow is factored into a shared `ingestExternalSource` helper. |
+| `src/rag/fetch.ts`         | **New module.** External full-document fetching, separated from evidence orchestration: `fetchCourtListenerSource(clusterId)` resolves a cluster → opinion via the Clusters/Opinions APIs (token-authenticated, prefers `html_with_citations`) and `fetchWikipediaSource(title, url)` fetches the full article via `with_html`. Both normalize HTML → readable text and return `FetchedSource \| null`.                                                                                                                                                                                                                                                                                                              |
+| `src/rag/ingest.ts`        | Added `findReusableSource(url)` — a cheap DB check for an existing **unexpired** source before chunking/embedding. `ingestSource` reuses existing chunks/embeddings when a valid source exists, avoiding expensive external fetching, chunking, and embedding.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/evidence/evidence.ts`          | Added `SearchContext` interface, `ragChunks` field on `Evidence`, and RAG ingestion + retrieval logic in `fetchEvidence`. RAG ingestion now uses the **full underlying documents** of the top search results: CourtListener cluster → opinion (`html_with_citations` → readable text) and Wikipedia article (`with_html` → readable text). Retrieval uses `topK: 3`. Runs `deleteExpiredSources()` before ingestion so expired sources are actively cleaned up, then checks `findReusableSource` **before** any external fetch (avoiding unnecessary CourtListener/Wikipedia requests when a valid source already exists). The per-source ingest/fetch flow is factored into a shared `ingestExternalSource` helper. |
 | `src/app/api/analyze/route.ts` | Capture #1 CourtListener and #1 Wikipedia search results as `SearchContext` and pass to `fetchEvidence`. Preserves the top CourtListener `cluster_id` so Evidence Assembly can resolve it to the underlying opinion. No other pipeline changes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `src/lib/search.ts`            | Preserves `cluster_id` from CourtListener search results into candidate metadata.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `src/lib/types.ts`             | Added `cluster_id` to `CachedCourtListenerResult`; removed `ResolvedCase` interface and `resolved` field from `CaseAnalysis` (resolution stage removed).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `src/lib/cache.ts`             | Removed `resolve` TTL key (resolution stage removed). RAG uses Supabase/pgvector, not Redis.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `src/lib/source.ts`            | No changes — RAG ingestion is deferred to Evidence Assembly, not source extraction.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `src/lib/overview.ts`          | No changes — `ragChunks` are included in the `Evidence` object, which is already serialized into the prompt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `src/lib/extract.ts`           | No changes (future decision).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `src/lib/resolve.ts`           | **Removed from active pipeline.** The LLM-based case resolution stage was removed; `resolve.ts` is retained as an inactive legacy module. Search results are now treated as evidence/RAG candidates directly.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `src/search/courtlistener.ts`            | Preserves `cluster_id` from CourtListener search results into candidate metadata.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/types.ts`             | Added `cluster_id` to `CachedCourtListenerResult`; removed `ResolvedCase` interface and `resolved` field from `CaseAnalysis` (resolution stage removed).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/cache/cache.ts`             | Removed `resolve` TTL key (resolution stage removed). RAG uses Supabase/pgvector, not Redis.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/source/source.ts`            | No changes — RAG ingestion is deferred to Evidence Assembly, not source extraction.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/overview/overview.ts`          | No changes — `ragChunks` are included in the `Evidence` object, which is already serialized into the prompt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/extract/extract.ts`           | No changes (future decision).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ~~`resolve.ts` (removed)~~  | **Removed entirely.** The LLM-based case resolution stage was removed from the active pipeline, and the `resolve.ts` file no longer exists after the `src/lib/` directory restructure. Search results are now treated as evidence/RAG candidates directly. |
 
 ### 2.10 Implemented Retrieval Flow
 
@@ -349,7 +349,7 @@ CaseAnalysis JSON → UI
 ## 3. Deployment Considerations
 
 - **Vercel/serverless fit:** Supabase Postgres is reachable over the network (via `DATABASE_URL`/`DIRECT_URL` from `.env.local`); pgvector queries run in the database, keeping serverless functions compute-light. Upstash Redis remains REST-based and cache-only.
-- **Local-embedding cold start:** Transformers.js model weights (~25 MB for `all-MiniLM-L6-v2`) load on first use after a cold start. Mitigations: module-level singleton, smallest adequate model, accept first-request latency.
+- **Local-embedding cold start:** Transformers.js model weights load on first use after a cold start. CaseFile loads the int8 quantized variant (`onnx/model_quantized.onnx`, ~23 MB for `all-MiniLM-L6-v2`) via `dtype: "q8"` rather than the default fp32 (`onnx/model.onnx`, ~90 MB). Embeddings are computed in bounded sequential batches of 16 chunks to cap peak inference memory. Mitigations: module-level singleton, quantized model, bounded inference batching, accept first-request latency.
 - **Supabase free tier:** storage and compute limits apply. The architecture must stay within free-tier constraints; the point at which the architecture needs reconsideration is documented in `decisions.md`.
 - **Configuration:** Supabase connection details are read from the existing `.env.local` (`DATABASE_URL`, `DIRECT_URL`). CourtListener full-opinion fetching requires `COURTLISTENER_API_TOKEN` in `.env.local` (used by `fetch.ts` to authenticate Clusters/Opinions API requests). No credentials are hardcoded.
 

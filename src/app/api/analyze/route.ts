@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import type { CaseAnalysis } from "@/lib/types";
-import type { SearchContext } from "@/lib/evidence";
+import type { CaseAnalysis } from "@/types";
+import type { SearchContext } from "@/evidence/evidence";
 
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL;
 
@@ -68,13 +68,13 @@ async function runLocalPipeline(
   refinementNames: string[],
   model: string,
 ) {
-  const { SourceError } = await import("@/lib/errors");
-  const { sourceContent } = await import("@/lib/source");
-  const { extractCase } = await import("@/lib/extract");
-  const { searchCourtListener } = await import("@/lib/search");
-  const { searchWikipedia } = await import("@/lib/wiki");
-  const { fetchEvidence } = await import("@/lib/evidence");
-  const { generateOverview } = await import("@/lib/overview");
+  const { SourceError } = await import("@/errors");
+  const { sourceContent } = await import("@/source/source");
+  const { extractCase } = await import("@/extract/extract");
+  const { searchCourtListener } = await import("@/search/courtlistener");
+  const { searchWikipedia } = await import("@/search/wiki");
+  const { fetchEvidence } = await import("@/evidence/evidence");
+  const { generateOverview } = await import("@/overview/overview");
 
   // Step 1: source content from URL (YouTube or article)
   let content;

@@ -1,8 +1,8 @@
-import { ExtractedCase, ScoredCandidate, CachedWikiResult } from "./types";
+import { ExtractedCase, ScoredCandidate, CachedWikiResult } from "../types";
 import { generateWikiQuery } from "./queries";
-import { hashKey } from "./hash";
-import { redis } from "./redis";
-import { CACHE_TTL } from "./cache";
+import { hashKey } from "../cache/hash";
+import { redis } from "../cache/redis";
+import { CACHE_TTL } from "../cache/cache";
 
 interface WikiSearchResult {
   title: string;

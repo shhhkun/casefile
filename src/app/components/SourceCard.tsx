@@ -1,5 +1,5 @@
 import { PanelLeft } from "lucide-react";
-import { CaseAnalysis, ScoredCandidate } from "@/lib/types";
+import { CaseAnalysis, ScoredCandidate } from "@/types";
 
 interface TagProps {
   url?: string;

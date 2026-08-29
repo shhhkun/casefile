@@ -1,4 +1,4 @@
-import { ExtractedCase } from "./types";
+import { ExtractedCase } from "../types";
 import natural from "natural";
 
 function normalizeName(name: string): string {
