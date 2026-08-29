@@ -1,8 +1,8 @@
-import { ExtractedContent } from "./types";
+import { ExtractedContent } from "../lib/types";
 import { extractArticle } from "./article";
 import { extractTranscript } from "./transcript";
-import { redis } from "./redis";
-import { CACHE_TTL } from "./cache";
+import { redis } from "../lib/redis";
+import { CACHE_TTL } from "../lib/cache";
 
 export function isYoutubeUrl(url: string): boolean {
   try {

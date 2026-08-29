@@ -69,9 +69,9 @@ async function runLocalPipeline(
   model: string,
 ) {
   const { SourceError } = await import("@/lib/errors");
-  const { sourceContent } = await import("@/lib/source");
+  const { sourceContent } = await import("@/source/source");
   const { extractCase } = await import("@/extract/extract");
-  const { searchCourtListener } = await import("@/search/search");
+  const { searchCourtListener } = await import("@/search/courtlistener");
   const { searchWikipedia } = await import("@/search/wiki");
   const { fetchEvidence } = await import("@/evidence/evidence");
   const { generateOverview } = await import("@/overview/overview");
