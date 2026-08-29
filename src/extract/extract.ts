@@ -1,7 +1,7 @@
 import Groq from "groq-sdk";
 import { ExtractedCase } from "../lib/types";
-import { redis } from "../lib/redis";
-import { CACHE_TTL } from "../lib/cache";
+import { redis } from "../cache/redis";
+import { CACHE_TTL } from "../cache/cache";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
