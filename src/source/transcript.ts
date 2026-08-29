@@ -7,7 +7,7 @@ import {
   YoutubeTranscriptTooManyRequestError,
   YoutubeTranscriptVideoUnavailableError,
 } from "youtube-transcript";
-import { SourceError } from "../lib/errors";
+import { SourceError } from "../errors/errors";
 
 export async function extractTranscript(url: string) {
   let transcript;

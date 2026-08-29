@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { SourceError } from "../lib/errors";
+import { SourceError } from "../errors/errors";
 
 export async function extractArticle(url: string) {
   console.log("Article: fetching URL:", url);

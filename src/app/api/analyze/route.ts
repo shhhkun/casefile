@@ -68,7 +68,7 @@ async function runLocalPipeline(
   refinementNames: string[],
   model: string,
 ) {
-  const { SourceError } = await import("@/lib/errors");
+  const { SourceError } = await import("@/errors/errors");
   const { sourceContent } = await import("@/source/source");
   const { extractCase } = await import("@/extract/extract");
   const { searchCourtListener } = await import("@/search/courtlistener");
