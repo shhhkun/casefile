@@ -82,7 +82,7 @@ Implementation verification:
 
 Use **local embeddings via Transformers.js (`@huggingface/transformers`)** as the initial embedding implementation.
 
-- **Model:** an open-source local embedding model such as `all-MiniLM-L6-v2` (384-dim, ~25 MB) unless repository investigation gives a strong reason to choose another small model.
+- **Model:** an open-source local embedding model such as `all-MiniLM-L6-v2` (384-dim). Transformers.js defaults to fp32 weights (`onnx/model.onnx`, ~90 MB); CaseFile pins `dtype: "q8"` to load the int8 quantized variant (`onnx/model_quantized.onnx`, ~23 MB), cutting the in-process model footprint ~4x without changing the stored embedding model id. Unless repository investigation gives a strong reason to choose another small model.
 - **Requirement:** zero API cost and no external embedding-service dependency.
 - **Explicitly not used:** OpenAI embeddings. The existing `openai` package is unrelated and does not influence this decision.
 
@@ -90,7 +90,7 @@ Use **local embeddings via Transformers.js (`@huggingface/transformers`)** as th
 
 #### Option 1 — Local embeddings via Transformers.js — **CHOSEN**
 
-- Runs models like `all-MiniLM-L6-v2` (~23M params, 384-dim, ~25 MB) or `bge-small-en-v1.5` (~130M params, 384-dim) entirely in Node.js.
+- Runs models like `all-MiniLM-L6-v2` (~23M params, 384-dim) or `bge-small-en-v1.5` (~130M params, 384-dim) entirely in Node.js. With Transformers.js the fp32 `onnx/model.onnx` is ~90 MB; CaseFile loads the int8 quantized `onnx/model_quantized.onnx` (~23 MB) via `dtype: "q8"`.
 - **Free today:** Yes — zero API cost, runs in-process.
 - **Free at realistic scale:** Yes — no quotas, no rate limits.
 - **Operational cost:** Cold-start latency on Vercel serverless. Model weights load on first invocation after a cold start. Mitigations:
@@ -315,15 +315,18 @@ The existing Upstash Redis **500k commands/month** free-tier limit is explicitly
 
 ### 9.2 Operational Tradeoff: Local Embeddings Cold-Start
 
-- Transformers.js loads model weights (~25 MB for `all-MiniLM-L6-v2`) on first use.
+- Transformers.js loads model weights on first use. For `all-MiniLM-L6-v2`, CaseFile loads the int8 quantized variant (`onnx/model_quantized.onnx`, ~23 MB) via `dtype: "q8"` rather than the default fp32 (`onnx/model.onnx`, ~90 MB).
 - On Vercel, each cold start reloads the model into memory, adding seconds of latency to the first request.
 - Warm invocations reuse the module-level model instance.
+- `embedTexts` runs inference in bounded sequential batches of 16 chunks so a long document's chunk embeddings never create one large in-memory batch.
 
 Mitigations (accepted as operational, not a decision):
 
 1. Use the smallest adequate model (`all-MiniLM-L6-v2`).
-2. Cache the model instance at module scope (idiomatic for serverless warm reuse).
-3. Accept first-request latency as a documented operational cost.
+2. Load the int8 quantized weights (`dtype: "q8"`) instead of fp32.
+3. Cache the model instance at module scope (idiomatic for serverless warm reuse).
+4. Bound the embedding inference batch size (16 chunks).
+5. Accept first-request latency as a documented operational cost.
 
 ### 9.3 Supabase Free-Tier Operational Notes
 
