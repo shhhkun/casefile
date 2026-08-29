@@ -1,8 +1,8 @@
 import * as dotenv from "dotenv";
 import { join } from "path";
 import { writeFileSync, mkdirSync } from "fs";
-import { retrieveChunks, closePool } from "../src/lib/rag";
-import { RetrievedChunk } from "../src/lib/rag/types";
+import { retrieveChunks, closePool } from "../src/rag";
+import { RetrievedChunk } from "../src/rag/types";
 
 // Load .env.local for DATABASE_URL.
 dotenv.config({ path: join(process.cwd(), ".env.local") });

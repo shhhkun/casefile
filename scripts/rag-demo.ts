@@ -7,7 +7,7 @@ import {
   embedTexts,
   deleteExpiredSources,
   closePool,
-} from "../src/lib/rag";
+} from "../src/rag";
 
 // Load .env.local for DATABASE_URL.
 dotenv.config({ path: join(process.cwd(), ".env.local") });

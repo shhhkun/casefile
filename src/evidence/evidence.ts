@@ -6,8 +6,8 @@ import {
   fetchCourtListenerSource,
   fetchWikipediaSource,
   deleteExpiredSources,
-} from "../lib/rag";
-import type { FetchedSource, RetrievedChunk } from "../lib/rag";
+} from "../rag";
+import type { FetchedSource, RetrievedChunk } from "../rag";
 
 export interface Evidence {
   caseInfo?: {
