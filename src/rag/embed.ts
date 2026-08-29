@@ -45,9 +45,7 @@ function getExtractor(): Promise<FeatureExtractionPipeline> {
 }
 
 /**
- * Generate a single normalized embedding vector for the given text using
- * the local Transformers.js model. Zero API cost, no external embedding
- * service dependency.
+ * Encode a single text into a normalized 384-dim embedding vector.
  */
 export async function embedText(text: string): Promise<number[]> {
   const extractor = await getExtractor();

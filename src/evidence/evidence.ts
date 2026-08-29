@@ -82,10 +82,6 @@ function limitText(text: string, maxChars: number): string {
   return text.slice(0, head) + "\n\n[Middle omitted]\n\n" + text.slice(-tail);
 }
 
-/**
- * Build a retrieval query string from the extracted case signals.
- * Used as the query text for RAG chunk retrieval.
- */
 function buildRagQuery(extracted: ExtractedCase): string {
   const parts = [
     extracted.caseName,
