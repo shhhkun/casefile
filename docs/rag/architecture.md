@@ -211,7 +211,7 @@ Key design points:
 ### 2.4 Embeddings
 
 - **Locked in:** local embeddings using **Transformers.js** (`@huggingface/transformers`).
-- **Model:** an open-source local embedding model such as `all-MiniLM-L6-v2` (384-dim, ~25 MB) unless repository investigation gives a strong reason to choose another small model.
+- **Model:** an open-source local embedding model such as `all-MiniLM-L6-v2` (384-dim). Transformers.js defaults to fp32 weights (`onnx/model.onnx`, ~90 MB); CaseFile pins `dtype: "q8"` to load the int8 quantized variant (`onnx/model_quantized.onnx`, ~23 MB), cutting the in-process model footprint ~4x without changing the stored embedding model id. Unless repository investigation gives a strong reason to choose another small model.
 - **Requirement:** zero API cost and no external embedding-service dependency.
 - **Explicitly not used:** OpenAI embeddings. The existing `openai` package is unrelated and does not influence this decision.
 - **Operational consideration:** on Vercel serverless, model weights load on cold start, adding latency to the first request after a cold invocation. Mitigations: module-level model singleton for warm reuse, smallest adequate model, and accepting first-request latency as a documented operational cost.
@@ -254,7 +254,7 @@ src/lib/rag/
   types.ts     → RAG data types (RagSource, RagChunk, RagEmbedding, RetrievedChunk, IngestInput, IngestResult, FetchedSource)
   db.ts        → lazy pg Pool for Supabase Postgres + pgvector (DATABASE_URL from .env); query/queryOne helpers
   chunk.ts     → token-based chunking with overlap (chunkText; modular — see §2.8)
-  embed.ts     → Transformers.js local embeddings (embedText / embedTexts; module-level model singleton)
+  embed.ts     → Transformers.js local embeddings (embedText / embedTexts; module-level model singleton; loads int8 quantized weights via dtype:"q8"; embedTexts runs bounded sequential batches of 16 chunks)
   fetch.ts     → external full-document fetching: CourtListener cluster → opinion (html_with_citations) and Wikipedia full article (with_html); normalizes HTML → readable text (FetchedSource)
   ingest.ts    → ensures a URL's content is chunked + embedded and stored in Supabase/pgvector; findReusableSource checks for an existing unexpired source before chunking/embedding (skips expensive work when reusable)
   retrieve.ts  → pgvector similarity query (retrieveChunks); current-source priority + cross-source supplement
@@ -349,7 +349,7 @@ CaseAnalysis JSON → UI
 ## 3. Deployment Considerations
 
 - **Vercel/serverless fit:** Supabase Postgres is reachable over the network (via `DATABASE_URL`/`DIRECT_URL` from `.env.local`); pgvector queries run in the database, keeping serverless functions compute-light. Upstash Redis remains REST-based and cache-only.
-- **Local-embedding cold start:** Transformers.js model weights (~25 MB for `all-MiniLM-L6-v2`) load on first use after a cold start. Mitigations: module-level singleton, smallest adequate model, accept first-request latency.
+- **Local-embedding cold start:** Transformers.js model weights load on first use after a cold start. CaseFile loads the int8 quantized variant (`onnx/model_quantized.onnx`, ~23 MB for `all-MiniLM-L6-v2`) via `dtype: "q8"` rather than the default fp32 (`onnx/model.onnx`, ~90 MB). Embeddings are computed in bounded sequential batches of 16 chunks to cap peak inference memory. Mitigations: module-level singleton, quantized model, bounded inference batching, accept first-request latency.
 - **Supabase free tier:** storage and compute limits apply. The architecture must stay within free-tier constraints; the point at which the architecture needs reconsideration is documented in `decisions.md`.
 - **Configuration:** Supabase connection details are read from the existing `.env.local` (`DATABASE_URL`, `DIRECT_URL`). CourtListener full-opinion fetching requires `COURTLISTENER_API_TOKEN` in `.env.local` (used by `fetch.ts` to authenticate Clusters/Opinions API requests). No credentials are hardcoded.
 
